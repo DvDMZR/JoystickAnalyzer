@@ -3,22 +3,84 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Alarm 8222 Analyse Dashboard</title>
+    <title>Joystick Use (Alarm 8222) Analyse Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Dual-Range-Schieber */
+        .range-slider-wrapper {
+            position: relative;
+            height: 28px;
+        }
+        .range-slider-wrapper input[type="range"] {
+            position: absolute;
+            width: 100%;
+            height: 4px;
+            background: transparent;
+            pointer-events: none;
+            -webkit-appearance: none;
+            appearance: none;
+            outline: none;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        .range-slider-wrapper input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #6366f1;
+            cursor: pointer;
+            pointer-events: all;
+            border: 2px solid white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+        .range-slider-wrapper input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #6366f1;
+            cursor: pointer;
+            pointer-events: all;
+            border: 2px solid white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+            border: none;
+        }
+        .range-track-bg {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: #e2e8f0;
+            border-radius: 2px;
+            pointer-events: none;
+        }
+        .range-track-fill {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            height: 4px;
+            background: #6366f1;
+            border-radius: 2px;
+            pointer-events: none;
+        }
+    </style>
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans p-4 md:p-6">
 
     <div class="max-w-6xl mx-auto bg-white rounded-xl shadow-md overflow-hidden">
         <div class="p-6 md:p-8">
-            <h1 class="text-2xl text-indigo-600 mb-6">Alarm 8222 Analyse</h1>
+            <h1 class="text-2xl text-indigo-600 mb-6">Joystick Use (Alarm 8222) Analyse</h1>
 
             <!-- Upload 1: Hauptdatei (8222-Alarme) -->
             <div class="mb-4 p-6 border-2 border-dashed border-slate-300 rounded-lg text-center bg-slate-50 hover:bg-slate-100 transition-colors">
                 <label for="fileUpload" class="cursor-pointer text-indigo-500 hover:text-indigo-700 text-lg flex flex-col items-center justify-center">
                     <svg class="w-10 h-10 mb-3 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
-                    Alarm-8222-Datei hochladen (.xlsx, .xls, .csv)
+                    Joystick-Use-Datei hochladen (Alarm 8222) (.xlsx, .xls, .csv)
                 </label>
                 <input type="file" id="fileUpload" accept=".xlsx, .xls, .csv" class="hidden">
                 <p id="fileName" class="mt-2 text-sm text-slate-500">Noch keine Datei ausgewählt</p>
@@ -54,8 +116,16 @@
                         </div>
                     </div>
                     <hr class="border-indigo-200 my-4">
-                    <h2 class="text-sm font-semibold text-indigo-800 mb-3 uppercase tracking-wide">Analysezeitraum anpassen</h2>
-                    <div class="flex flex-col sm:flex-row gap-4 items-end">
+                    <h2 class="text-sm font-semibold text-indigo-800 mb-3 uppercase tracking-wide">Analysezeitraum</h2>
+                    <!-- Schnellauswahl-Buttons -->
+                    <div class="flex flex-wrap gap-2 mb-4" id="presetBtns">
+                        <button data-days="7"  class="preset-btn px-3 py-1.5 rounded-md text-sm font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors">Letzte 7 Tage</button>
+                        <button data-days="30" class="preset-btn px-3 py-1.5 rounded-md text-sm font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors">Letzte 30 Tage</button>
+                        <button data-days="90" class="preset-btn px-3 py-1.5 rounded-md text-sm font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors">Letzte 90 Tage</button>
+                        <button data-days="0"  class="preset-btn px-3 py-1.5 rounded-md text-sm font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors">Eigener Zeitraum</button>
+                    </div>
+                    <!-- Manuelle Datumseingabe (nur bei "Eigener Zeitraum") -->
+                    <div id="customDateRow" class="hidden flex flex-col sm:flex-row gap-4 items-end">
                         <div class="w-full sm:w-auto">
                             <label for="startDate" class="block text-sm text-slate-600 mb-1">Startdatum:</label>
                             <input type="date" id="startDate" class="block w-full rounded-md border-slate-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 border p-2">
@@ -81,6 +151,7 @@
                         <h3 class="text-lg text-slate-700 mb-2">Durchschnitt pro Tag</h3>
                         <p id="avgAlarms" class="text-5xl font-light text-emerald-500 my-2">0</p>
                         <p class="text-sm text-slate-500 mt-1">Ø im gewählten Zeitraum</p>
+                        <p id="trendIndicator" class="text-sm font-medium mt-2"></p>
                     </div>
                     <div class="bg-white p-6 rounded-lg border border-slate-200 shadow-sm h-48 flex flex-col">
                         <h3 class="text-lg text-slate-700 mb-3">Peak-Tage (> Durchschnitt)</h3>
@@ -113,19 +184,44 @@
 
                 <!-- Chart-Bereich -->
                 <div class="bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
-                    <div class="flex justify-between items-center mb-4 ml-2">
-                        <div>
-                            <h3 class="text-lg text-slate-700">Alarmverlauf (Code 8222)</h3>
-                            <p class="text-xs text-slate-500">1. Klick = Bereich-Start &amp; Severity-3-Detail &nbsp;·&nbsp; 2. Klick = Bereich-Ende</p>
+                    <div class="flex flex-wrap justify-between items-center mb-3 ml-2 gap-2">
+                        <h3 class="text-lg text-slate-700">Joystick Use – Verlauf (Alarm 8222)</h3>
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <!-- Toggle-Buttons für Linien -->
+                            <button id="toggleAvgBtn" data-idx="1"
+                                class="toggle-line-btn text-xs px-2.5 py-1 rounded-full border border-red-300 text-red-600 bg-red-50 hover:bg-red-100 transition-colors">
+                                ── Durchschnitt
+                            </button>
+                            <button id="toggle7dayBtn" data-idx="2"
+                                class="toggle-line-btn text-xs px-2.5 py-1 rounded-full border border-orange-300 text-orange-600 bg-orange-50 hover:bg-orange-100 transition-colors">
+                                ·· 7-Tage-Ø
+                            </button>
+                            <button id="downloadChartBtn" class="text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 py-1.5 px-3 rounded flex items-center gap-2 transition-colors">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                                Speichern
+                            </button>
                         </div>
-                        <button id="downloadChartBtn" class="text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 py-1.5 px-3 rounded flex items-center gap-2 transition-colors">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                            Speichern
-                        </button>
                     </div>
 
                     <div class="relative h-64 md:h-80 w-full bg-white">
                         <canvas id="alarmChart"></canvas>
+                    </div>
+
+                    <!-- Dual-Range-Schieber -->
+                    <div id="rangeSliderWrapper" class="hidden mt-5 px-2">
+                        <div class="text-xs text-slate-500 mb-2 font-medium uppercase tracking-wide">Bereich eingrenzen</div>
+                        <div class="relative px-2">
+                            <div class="range-track-bg"></div>
+                            <div id="rangeTrackFill" class="range-track-fill"></div>
+                            <div class="range-slider-wrapper">
+                                <input type="range" id="sliderLeft"  min="0" value="0"   step="1">
+                                <input type="range" id="sliderRight" min="0" value="100" step="1">
+                            </div>
+                        </div>
+                        <div class="flex justify-between text-xs text-slate-600 mt-2 font-medium">
+                            <span id="sliderLabelLeft"  class="bg-orange-100 text-orange-700 px-2 py-0.5 rounded">–</span>
+                            <span id="sliderLabelRight" class="bg-orange-100 text-orange-700 px-2 py-0.5 rounded">–</span>
+                        </div>
                     </div>
 
                     <!-- Severity-3-Detail-Panel -->
@@ -153,6 +249,8 @@
         let selectionEnd = null;
         let chartLabels = [];
         let chartCounts = [];
+        let dataMinDate = null;
+        let dataMaxDate = null;
 
         // ── Fehler-Helfer ─────────────────────────────────────────────────────────
 
@@ -329,6 +427,43 @@
             return `${y}-${mo}-${d}`;
         }
 
+        function subtractDays(dateStr, days) {
+            const d = new Date(dateStr + 'T00:00:00');
+            d.setDate(d.getDate() - days);
+            return formatDateToYYYYMMDD(d);
+        }
+
+        // ── Schnellauswahl-Buttons ────────────────────────────────────────────────
+
+        function setActivePreset(btn) {
+            document.querySelectorAll('.preset-btn').forEach(b => {
+                b.classList.remove('bg-indigo-500', 'text-white');
+                b.classList.add('bg-slate-100', 'text-slate-700');
+            });
+            btn.classList.remove('bg-slate-100', 'text-slate-700');
+            btn.classList.add('bg-indigo-500', 'text-white');
+        }
+
+        document.querySelectorAll('.preset-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                setActivePreset(btn);
+                const days = parseInt(btn.dataset.days, 10);
+                const customRow = document.getElementById('customDateRow');
+
+                if (days === 0) {
+                    customRow.classList.remove('hidden');
+                } else {
+                    customRow.classList.add('hidden');
+                    const todayStr = formatDateToYYYYMMDD(new Date());
+                    const endStr = (dataMaxDate && dataMaxDate < todayStr) ? dataMaxDate : todayStr;
+                    const startStr = subtractDays(endStr, days - 1);
+                    const clampedStart = (dataMinDate && startStr < dataMinDate) ? dataMinDate : startStr;
+                    resetSelection();
+                    analyzeAndRender(clampedStart, endStr);
+                }
+            });
+        });
+
         // ── Hauptdatei verarbeiten ────────────────────────────────────────────────
 
         function processExcelData(data) {
@@ -345,24 +480,33 @@
                 .filter(item => item.date !== null);
 
             if (allAlarmsData.length === 0) {
-                showError('Keine Alarme mit Code 8222 in der Datei gefunden oder Datumsformat nicht erkannt.');
+                showError('Keine Joystick-Use-Ereignisse (Alarm 8222) in der Datei gefunden oder Datumsformat nicht erkannt.');
                 return;
             }
 
             document.getElementById('anlageName').textContent = anlage;
 
             const dates = [...new Set(allAlarmsData.map(item => item.date))].sort();
-            const minDate = dates[0];
-            const maxDate = dates[dates.length - 1];
+            dataMinDate = dates[0];
+            dataMaxDate = dates[dates.length - 1];
             const todayStr = formatDateToYYYYMMDD(new Date());
 
-            document.getElementById('totalDateRange').textContent = minDate + ' bis ' + maxDate;
-            document.getElementById('startDate').value = minDate;
+            document.getElementById('totalDateRange').textContent = dataMinDate + ' bis ' + dataMaxDate;
+            document.getElementById('startDate').value = dataMinDate;
             document.getElementById('endDate').value = todayStr;
             document.getElementById('analysisSection').classList.remove('hidden');
 
+            // Standardmäßig "Letzte 30 Tage" aktivieren
+            const btn30 = document.querySelector('.preset-btn[data-days="30"]');
+            setActivePreset(btn30);
+            document.getElementById('customDateRow').classList.add('hidden');
+
+            const endStr = (dataMaxDate && dataMaxDate < todayStr) ? dataMaxDate : todayStr;
+            const startStr = subtractDays(endStr, 29);
+            const clampedStart = startStr < dataMinDate ? dataMinDate : startStr;
+
             resetSelection();
-            analyzeAndRender(minDate, todayStr);
+            analyzeAndRender(clampedStart, endStr);
         }
 
         // ── Aktualisieren-Button ──────────────────────────────────────────────────
@@ -403,6 +547,25 @@
             document.getElementById('totalAlarmsSelected').textContent = totalAlarms;
             document.getElementById('avgAlarms').textContent = average.toFixed(1).replace('.', ',');
 
+            // Trend-Indikator: erste Hälfte vs. zweite Hälfte
+            const trendEl = document.getElementById('trendIndicator');
+            if (daysCount >= 4) {
+                const mid = Math.floor(daysCount / 2);
+                const firstHalfAvg  = chartCounts.slice(0, mid).reduce((s, c) => s + c, 0) / mid;
+                const secondHalfAvg = chartCounts.slice(mid).reduce((s, c) => s + c, 0) / (daysCount - mid);
+                const trendPct = firstHalfAvg > 0 ? ((secondHalfAvg - firstHalfAvg) / firstHalfAvg) * 100 : 0;
+                const absPct = Math.abs(trendPct).toFixed(0);
+                if (Math.abs(trendPct) < 5) {
+                    trendEl.innerHTML = '<span class="text-slate-500">→ Stabil</span>';
+                } else if (trendPct > 0) {
+                    trendEl.innerHTML = `<span class="text-red-500">&#8593; +${absPct}&thinsp;% Tendenz steigend</span>`;
+                } else {
+                    trendEl.innerHTML = `<span class="text-emerald-600">&#8595; &minus;${absPct}&thinsp;% Tendenz fallend</span>`;
+                }
+            } else {
+                trendEl.innerHTML = '';
+            }
+
             const peakList = document.getElementById('peakList');
             peakList.innerHTML = '';
             let peaksFound = false;
@@ -420,6 +583,7 @@
             }
 
             renderChart(chartLabels, chartCounts, average);
+            initSliders();
         }
 
         // ── Gleitender Durchschnitt ───────────────────────────────────────────────
@@ -435,16 +599,16 @@
         // ── Balkenfarben je Auswahl ───────────────────────────────────────────────
 
         function getBarColors(labels) {
-            if (!selectionStart) {
+            if (!selectionStart || !selectionEnd) {
                 return labels.map(() => 'rgba(99, 102, 241, 0.8)');
             }
             const startIdx = labels.indexOf(selectionStart);
-            const endIdx = selectionEnd ? labels.indexOf(selectionEnd) : startIdx;
+            const endIdx   = labels.indexOf(selectionEnd);
             const lo = Math.min(startIdx, endIdx);
             const hi = Math.max(startIdx, endIdx);
             return labels.map((_, i) => {
                 if (i >= lo && i <= hi) return 'rgba(251, 146, 60, 0.85)';
-                return selectionEnd ? 'rgba(99, 102, 241, 0.3)' : 'rgba(99, 102, 241, 0.5)';
+                return 'rgba(99, 102, 241, 0.3)';
             });
         }
 
@@ -452,15 +616,26 @@
 
         function renderChart(labels, data, average) {
             const averageLine = Array(labels.length).fill(average);
-            const movingAvg = computeMovingAverage(data, 7);
-            const barColors = getBarColors(labels);
+            const movingAvg   = computeMovingAverage(data, 7);
+            const barColors   = getBarColors(labels);
+            const n           = labels.length;
+
+            // Dynamische Balkenbreite & Tick-Limit für große Zeiträume
+            const barThickness  = n > 180 ? 1 : n > 90 ? 2 : undefined;
+            const maxTicksLimit = n > 90 ? Math.ceil(n / 7) : n > 30 ? 15 : undefined;
 
             if (myChart) {
                 myChart.data.labels = labels;
                 myChart.data.datasets[0].data = data;
                 myChart.data.datasets[0].backgroundColor = barColors;
+                if (barThickness !== undefined) {
+                    myChart.data.datasets[0].barThickness = barThickness;
+                } else {
+                    delete myChart.data.datasets[0].barThickness;
+                }
                 myChart.data.datasets[1].data = averageLine;
                 myChart.data.datasets[2].data = movingAvg;
+                myChart.options.scales.x.ticks = maxTicksLimit ? { maxTicksLimit } : {};
                 myChart.update();
                 return;
             }
@@ -472,12 +647,13 @@
                     labels,
                     datasets: [
                         {
-                            label: 'Anzahl 8222 Alarme',
+                            label: 'Joystick Use (Alarm 8222)',
                             data,
                             backgroundColor: barColors,
                             borderColor: 'rgb(79, 70, 229)',
                             borderWidth: 1,
                             borderRadius: 4,
+                            barThickness,
                             order: 3
                         },
                         {
@@ -513,7 +689,7 @@
                         const rawIndex = xAxis.getValueForPixel(e.x);
                         const dataIndex = Math.round(rawIndex);
                         if (dataIndex >= 0 && dataIndex < chart.data.labels.length) {
-                            handleBarClick(chart.data.labels[dataIndex]);
+                            showDayDetail(chart.data.labels[dataIndex]);
                         }
                     },
                     scales: {
@@ -524,7 +700,8 @@
                         },
                         x: {
                             title: { display: false },
-                            grid: { display: false }
+                            grid: { display: false },
+                            ticks: maxTicksLimit ? { maxTicksLimit } : {}
                         }
                     },
                     plugins: {
@@ -534,48 +711,94 @@
                             titleFont: { size: 14 },
                             bodyFont: { size: 13 }
                         },
-                        legend: {
-                            position: 'top',
-                            labels: { usePointStyle: true, padding: 20 }
-                        }
+                        legend: { display: false }
                     }
                 }
             });
         }
 
-        // ── Klick-Handler ─────────────────────────────────────────────────────────
+        // ── Toggle-Buttons für Linien ─────────────────────────────────────────────
 
-        function handleBarClick(dateStr) {
-            // Severity-3-Detail immer anzeigen
-            showDayDetail(dateStr);
+        document.querySelectorAll('.toggle-line-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (!myChart) return;
+                const idx = parseInt(btn.dataset.idx, 10);
+                const ds = myChart.data.datasets[idx];
+                ds.hidden = !ds.hidden;
+                btn.classList.toggle('opacity-40', ds.hidden);
+                myChart.update();
+            });
+        });
 
-            // Bereichsauswahl-Zustandsmaschine
-            if (!selectionStart) {
-                selectionStart = dateStr;
-                selectionEnd = null;
-            } else if (dateStr === selectionStart) {
-                // Gleicher Balken erneut: Auswahl abbrechen
+        // ── Dual-Range-Schieber ───────────────────────────────────────────────────
+
+        function initSliders() {
+            const n = chartLabels.length;
+            const wrapper = document.getElementById('rangeSliderWrapper');
+            if (n < 2) { wrapper.classList.add('hidden'); return; }
+
+            const sliderLeft  = document.getElementById('sliderLeft');
+            const sliderRight = document.getElementById('sliderRight');
+            sliderLeft.max    = n - 1;
+            sliderRight.max   = n - 1;
+            sliderLeft.value  = 0;
+            sliderRight.value = n - 1;
+
+            wrapper.classList.remove('hidden');
+            updateSliderUI();
+        }
+
+        function updateSliderUI() {
+            const sliderLeft  = document.getElementById('sliderLeft');
+            const sliderRight = document.getElementById('sliderRight');
+            const n = chartLabels.length;
+            if (n === 0) return;
+
+            const lo = parseInt(sliderLeft.value,  10);
+            const hi = parseInt(sliderRight.value, 10);
+
+            document.getElementById('sliderLabelLeft').textContent  = chartLabels[lo] || '–';
+            document.getElementById('sliderLabelRight').textContent = chartLabels[hi] || '–';
+
+            // Track fill visual
+            const fillEl   = document.getElementById('rangeTrackFill');
+            const pctLeft  = (lo / (n - 1)) * 100;
+            const pctRight = (hi / (n - 1)) * 100;
+            fillEl.style.left  = pctLeft  + '%';
+            fillEl.style.width = (pctRight - pctLeft) + '%';
+
+            // Update selection (full range = no selection highlight)
+            if (lo === 0 && hi === n - 1) {
                 selectionStart = null;
-                selectionEnd = null;
-            } else if (!selectionEnd) {
-                selectionEnd = dateStr;
+                selectionEnd   = null;
             } else {
-                // Neuen Bereich starten
-                selectionStart = dateStr;
-                selectionEnd = null;
+                selectionStart = chartLabels[lo];
+                selectionEnd   = chartLabels[hi];
             }
 
             updateChartColors();
             updateSelectionUI();
         }
 
+        document.getElementById('sliderLeft').addEventListener('input', function () {
+            const sliderRight = document.getElementById('sliderRight');
+            if (parseInt(this.value) > parseInt(sliderRight.value)) this.value = sliderRight.value;
+            updateSliderUI();
+        });
+
+        document.getElementById('sliderRight').addEventListener('input', function () {
+            const sliderLeft = document.getElementById('sliderLeft');
+            if (parseInt(this.value) < parseInt(sliderLeft.value)) this.value = sliderLeft.value;
+            updateSliderUI();
+        });
+
+        // ── Bereichsauswahl-Karte ─────────────────────────────────────────────────
+
         function updateChartColors() {
             if (!myChart) return;
             myChart.data.datasets[0].backgroundColor = getBarColors(chartLabels);
             myChart.update('none');
         }
-
-        // ── Bereichsauswahl-Karte ─────────────────────────────────────────────────
 
         function updateSelectionUI() {
             const card = document.getElementById('selectionCard');
@@ -585,17 +808,16 @@
             }
 
             const startIdx = chartLabels.indexOf(selectionStart);
-            const endIdx = chartLabels.indexOf(selectionEnd);
+            const endIdx   = chartLabels.indexOf(selectionEnd);
             const lo = Math.min(startIdx, endIdx);
             const hi = Math.max(startIdx, endIdx);
 
-            const selCounts = chartCounts.slice(lo, hi + 1);
-            const selTotal = selCounts.reduce((s, c) => s + c, 0);
-            const selDays = selCounts.length;
-            const selAvg = selDays > 0 ? selTotal / selDays : 0;
-
+            const selCounts  = chartCounts.slice(lo, hi + 1);
+            const selTotal   = selCounts.reduce((s, c) => s + c, 0);
+            const selDays    = selCounts.length;
+            const selAvg     = selDays > 0 ? selTotal / selDays : 0;
             const overallTotal = chartCounts.reduce((s, c) => s + c, 0);
-            const overallAvg = chartLabels.length > 0 ? overallTotal / chartLabels.length : 0;
+            const overallAvg   = chartLabels.length > 0 ? overallTotal / chartLabels.length : 0;
 
             document.getElementById('selectionRangeLabel').textContent =
                 chartLabels[lo] + ' bis ' + chartLabels[hi] + ' (' + selDays + ' Tage)';
@@ -611,7 +833,13 @@
 
         function resetSelection() {
             selectionStart = null;
-            selectionEnd = null;
+            selectionEnd   = null;
+            const n = chartLabels.length;
+            if (n > 0) {
+                document.getElementById('sliderLeft').value  = 0;
+                document.getElementById('sliderRight').value = n - 1;
+                updateSliderUI();
+            }
             updateChartColors();
             document.getElementById('selectionCard').classList.add('hidden');
             document.getElementById('detailPanel').classList.add('hidden');
@@ -622,7 +850,7 @@
         // ── Severity-3-Detail-Panel ───────────────────────────────────────────────
 
         function showDayDetail(dateStr) {
-            const panel = document.getElementById('detailPanel');
+            const panel   = document.getElementById('detailPanel');
             const content = document.getElementById('detailContent');
             document.getElementById('detailDate').textContent = dateStr;
 
@@ -668,14 +896,14 @@
 
         document.getElementById('downloadChartBtn').addEventListener('click', () => {
             if (!myChart) return;
-            const canvas = document.getElementById('alarmChart');
+            const canvas  = document.getElementById('alarmChart');
             const context = canvas.getContext('2d');
             context.save();
             context.globalCompositeOperation = 'destination-over';
             context.fillStyle = 'white';
             context.fillRect(0, 0, canvas.width, canvas.height);
             const link = document.createElement('a');
-            link.download = 'Alarm_8222_Analyse.png';
+            link.download = 'JoystickUse_8222_Analyse.png';
             link.href = canvas.toDataURL('image/png', 1.0);
             link.click();
             context.restore();
