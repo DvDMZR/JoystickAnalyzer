@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alarm 8222 Analyse Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Plugin für Chart Annotations (Marker) -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans p-4 md:p-6">
+
+    <div class="max-w-6xl mx-auto bg-white rounded-xl shadow-md overflow-hidden">
+        <div class="p-6 md:p-8">
+            <h1 class="text-2xl text-indigo-600 mb-6">Alarm 8222 Analyse</h1>
+
+            <!-- Upload Section -->
+            <div class="mb-8 p-6 border-2 border-dashed border-slate-300 rounded-lg text-center bg-slate-50 hover:bg-slate-100 transition-colors">
+                <label for="fileUpload" class="cursor-pointer text-indigo-500 hover:text-indigo-700 text-lg flex flex-col items-center justify-center">
+                    <svg class="w-10 h-10 mb-3 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                    Klicke hier, um deine Datei (.xlsx, .xls, .csv) hochzuladen
+                </label>
+                <input type="file" id="fileUpload" accept=".xlsx, .xls, .csv" class="hidden">
+                <p id="fileName" class="mt-2 text-sm text-slate-500">Noch keine Datei ausgewählt</p>
+                <div id="loadingIndicator" class="hidden mt-4 text-indigo-600">Datei wird verarbeitet...</div>
+                <div id="errorMessage" class="hidden mt-4 p-4 bg-red-50 text-red-700 rounded-md text-sm text-left border border-red-200"></div>
+            </div>
+
+            <!-- Date Range & Info Section (Hidden until file is loaded) -->
+            <div id="analysisSection" class="hidden">
+                <div class="bg-indigo-50 p-4 rounded-lg mb-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <h2 class="text-sm font-semibold text-indigo-800 mb-1 uppercase tracking-wide">Analysierte Anlage</h2>
+                            <p id="anlageName" class="text-xl text-slate-800 font-medium">Lade Daten...</p>
+                        </div>
+                        <div>
+                            <h2 class="text-sm font-semibold text-indigo-800 mb-1 uppercase tracking-wide">Gesamter Zeitraum der Datei</h2>
+                            <p id="totalDateRange" class="text-slate-700 font-medium mt-1"></p>
+                        </div>
+                    </div>
+                    
+                    <hr class="border-indigo-200 my-4">
+
+                    <h2 class="text-sm font-semibold text-indigo-800 mb-3 uppercase tracking-wide">Analysezeitraum anpassen</h2>
+                    <div class="flex flex-col sm:flex-row gap-4 items-end">
+                        <div class="w-full sm:w-auto">
+                            <label for="startDate" class="block text-sm text-slate-600 mb-1">Startdatum:</label>
+                            <input type="date" id="startDate" class="block w-full rounded-md border-slate-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 border p-2">
+                        </div>
+                        <div class="w-full sm:w-auto">
+                            <label for="endDate" class="block text-sm text-slate-600 mb-1">Enddatum:</label>
+                            <input type="date" id="endDate" class="block w-full rounded-md border-slate-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 border p-2">
+                        </div>
+                        <div class="w-full sm:w-auto">
+                            <button id="updateBtn" class="w-full sm:w-auto bg-indigo-500 hover:bg-indigo-600 text-white py-2 px-6 rounded-md shadow transition-colors">
+                                Aktualisieren
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stats Section -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="bg-white p-6 rounded-lg border border-slate-200 shadow-sm flex flex-col justify-center items-center text-center">
+                        <h3 class="text-lg text-slate-700 mb-2">Alarme Gesamt</h3>
+                        <p id="totalAlarmsSelected" class="text-5xl font-light text-indigo-600 my-2">0</p>
+                        <p class="text-sm text-slate-500 mt-1">Im gewählten Zeitraum</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg border border-slate-200 shadow-sm flex flex-col justify-center items-center text-center">
+                        <h3 class="text-lg text-slate-700 mb-2">Durchschnitt pro Tag</h3>
+                        <p id="avgAlarms" class="text-5xl font-light text-emerald-500 my-2">0</p>
+                        <p class="text-sm text-slate-500 mt-1">Ø im gewählten Zeitraum</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg border border-slate-200 shadow-sm h-48 flex flex-col">
+                        <h3 class="text-lg text-slate-700 mb-3">Peak-Tage (> Durchschnitt)</h3>
+                        <div class="overflow-y-auto flex-grow pr-2">
+                            <ul id="peakList" class="space-y-2 text-sm text-slate-600">
+                                <!-- Peaks will be injected here -->
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chart Section -->
+                <div class="bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
+                    <div class="flex justify-between items-center mb-4 ml-2">
+                        <div>
+                            <h3 class="text-lg text-slate-700">Alarmverlauf (Code 8222)</h3>
+                            <p class="text-xs text-slate-500">Tipp: Klicke auf einen Balken, um einen Marker zu setzen.</p>
+                        </div>
+                        <button id="downloadChartBtn" class="text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 py-1.5 px-3 rounded flex items-center gap-2 transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                            Speichern
+                        </button>
+                    </div>
+                    
+                    <div class="relative h-64 md:h-80 w-full bg-white">
+                        <canvas id="alarmChart"></canvas>
+                    </div>
+
+                    <!-- Marker Management -->
+                    <div id="markerContainer" class="mt-4 pt-4 border-t border-slate-100 hidden">
+                        <div class="flex justify-between items-center mb-2">
+                            <h4 class="text-sm font-medium text-slate-700">Gesetzte Marker:</h4>
+                            <button id="clearMarkersBtn" class="text-xs text-red-500 hover:text-red-700 underline">Alle Marker löschen</button>
+                        </div>
+                        <div id="markerList" class="flex flex-wrap gap-2">
+                            <!-- Marker tags go here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Chart.js Annotation Plugin registrieren
+        if (typeof ChartAnnotation !== 'undefined') {
+            Chart.register(ChartAnnotation);
+        }
+
+        let allAlarmsData = [];
+        let myChart = null;
+        let chartMarkers = {};
+        let activeDates = {};
+        let markerCount = 0;
+
+        // File Upload Listener
+        document.getElementById('fileUpload').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            document.getElementById('fileName').textContent = file.name;
+            document.getElementById('loadingIndicator').classList.remove('hidden');
+            document.getElementById('analysisSection').classList.add('hidden');
+            
+            const errorDiv = document.getElementById('errorMessage');
+            if (errorDiv) errorDiv.classList.add('hidden');
+
+            const reader = new FileReader();
+
+            reader.onload = function(e) {
+                try {
+                    let json = [];
+                    const arrayBuffer = e.target.result;
+                    const bytes = new Uint8Array(arrayBuffer);
+                    
+                    // Pruefen der Magic Bytes: Faengt eine Datei mit PK (Hex 50 4B) an, ist es ein ZIP/XLSX (auch wenn sie .csv heisst)
+                    const isActuallyXLSX = bytes.length > 2 && bytes[0] === 0x50 && bytes[1] === 0x4B;
+                    const isCSV = file.name.toLowerCase().endsWith('.csv') && !isActuallyXLSX;
+                    
+                    if (isCSV) {
+                        // Text dekodieren (windows-1252 faengt Umlaute in deutschen CSVs oft besser ab)
+                        const decoder = new TextDecoder('windows-1252');
+                        const text = decoder.decode(bytes);
+                        
+                        const delimiter = text.indexOf(';') !== -1 ? ';' : ',';
+                        const lines = text.split(/\r?\n/);
+                        if (lines.length > 0) {
+                            const headers = lines[0].split(delimiter).map(h => h.trim().replace(/^"|"$/g, ''));
+                            for(let i=1; i<lines.length; i++) {
+                                if(!lines[i].trim()) continue;
+                                const values = lines[i].split(delimiter);
+                                let row = {};
+                                for(let j=0; j<headers.length; j++) {
+                                    row[headers[j]] = values[j] ? values[j].trim().replace(/^"|"$/g, '') : "";
+                                }
+                                json.push(row);
+                            }
+                        }
+                    } else {
+                        // Verarbeitung als XLSX
+                        const workbook = XLSX.read(bytes, {type: 'array', cellDates: true});
+                        const firstSheetName = workbook.SheetNames[0];
+                        const worksheet = workbook.Sheets[firstSheetName];
+                        json = XLSX.utils.sheet_to_json(worksheet);
+                    }
+                    
+                    processExcelData(json);
+                } catch (error) {
+                    if (errorDiv) {
+                        if (error.message && error.message.includes("Encrypted")) {
+                            errorDiv.innerHTML = "Die Datei ist verschlüsselt!<br>Diese Excel-Datei ist durch ein Passwort oder durch Firmenrichtlinien (Sensitivity Labels) geschützt und kann vom Browser nicht direkt gelesen werden.<br><br>Lösung: Bitte öffne die Datei kurz in Excel, klicke auf 'Speichern unter' und wähle das Format 'CSV (Trennzeichen-getrennt) (*.csv)'. Lade dann diese neue CSV-Datei hier hoch.";
+                        } else {
+                            errorDiv.innerHTML = "Verarbeitungsfehler: Die Datei konnte nicht gelesen werden. Bitte stelle sicher, dass es eine gültige Excel- oder CSV-Datei ist.";
+                        }
+                        errorDiv.classList.remove('hidden');
+                    }
+                } finally {
+                    document.getElementById('loadingIndicator').classList.add('hidden');
+                }
+            };
+
+            // Wir lesen jetzt immer als ArrayBuffer ein, um den genauen Dateityp zu pruefen
+            reader.readAsArrayBuffer(file);
+        });
+
+        function formatDateToYYYYMMDD(dateInput) {
+            if (!dateInput) return null;
+            
+            if (typeof dateInput === 'string') {
+                if (dateInput.match(/^\d{4}-\d{2}-\d{2}/)) {
+                    return dateInput.substring(0, 10);
+                }
+                const deDateMatch = dateInput.match(/^(\d{2})\.(\d{2})\.(\d{4})/);
+                if (deDateMatch) {
+                    return `${deDateMatch[3]}-${deDateMatch[2]}-${deDateMatch[1]}`;
+                }
+            }
+            
+            let dateObj;
+            if (dateInput instanceof Date) {
+                dateObj = dateInput;
+            } else {
+                dateObj = new Date(dateInput);
+            }
+
+            if (isNaN(dateObj.getTime())) return null;
+
+            const year = dateObj.getFullYear();
+            const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const day = String(dateObj.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function processExcelData(data) {
+            let anlage = "Unbekannt";
+            
+            allAlarmsData = data.filter(row => {
+                const msg = String(row.message || "");
+                return msg.includes("8222");
+            }).map(row => {
+                if (row.senderNode && anlage === "Unbekannt") {
+                    anlage = row.senderNode;
+                }
+                return {
+                    date: formatDateToYYYYMMDD(row.alarmDate || row.alarmTime),
+                    senderNode: row.senderNode || ""
+                };
+            }).filter(item => item.date !== null);
+
+            if (allAlarmsData.length === 0) {
+                alert("Keine Alarme mit Code 8222 in der Datei gefunden oder Datumsformat nicht erkannt.");
+                return;
+            }
+
+            // Anlagenname setzen
+            document.getElementById('anlageName').textContent = anlage;
+
+            const dates = [...new Set(allAlarmsData.map(item => item.date))].sort();
+            
+            const minDate = dates[0];
+            const maxDate = dates[dates.length - 1];
+            const todayStr = formatDateToYYYYMMDD(new Date());
+
+            document.getElementById('totalDateRange').textContent = minDate + " bis " + maxDate;
+            
+            document.getElementById('startDate').value = minDate;
+            document.getElementById('endDate').value = todayStr;
+
+            document.getElementById('analysisSection').classList.remove('hidden');
+            
+            // Marker zurücksetzen bei neuer Datei
+            clearMarkers();
+
+            analyzeAndRender(minDate, todayStr);
+        }
+
+        document.getElementById('updateBtn').addEventListener('click', () => {
+            const start = document.getElementById('startDate').value;
+            const end = document.getElementById('endDate').value;
+            
+            if (!start || !end) {
+                alert("Bitte wähle ein Start- und Enddatum aus.");
+                return;
+            }
+            
+            if (start > end) {
+                alert("Das Startdatum darf nicht nach dem Enddatum liegen.");
+                return;
+            }
+
+            analyzeAndRender(start, end);
+        });
+
+        function analyzeAndRender(startDate, endDate) {
+            const filteredData = allAlarmsData.filter(item => {
+                return item.date >= startDate && item.date <= endDate;
+            });
+
+            const dailyCounts = {};
+            
+            let currentDate = new Date(startDate);
+            const end = new Date(endDate);
+            while (currentDate <= end) {
+                const dateStr = formatDateToYYYYMMDD(currentDate);
+                dailyCounts[dateStr] = 0;
+                currentDate.setDate(currentDate.getDate() + 1);
+            }
+
+            filteredData.forEach(item => {
+                if (dailyCounts[item.date] !== undefined) {
+                    dailyCounts[item.date]++;
+                }
+            });
+
+            const labels = Object.keys(dailyCounts).sort();
+            const counts = labels.map(date => dailyCounts[date]);
+
+            // Calculate Stats
+            const totalAlarms = counts.reduce((sum, count) => sum + count, 0);
+            const daysCount = labels.length;
+            const average = daysCount > 0 ? (totalAlarms / daysCount) : 0;
+            
+            document.getElementById('totalAlarmsSelected').textContent = totalAlarms;
+            document.getElementById('avgAlarms').textContent = average.toFixed(1).replace('.', ',');
+
+            // Identify Peaks
+            const peakList = document.getElementById('peakList');
+            peakList.innerHTML = "";
+            let peaksFound = false;
+
+            labels.forEach((date, index) => {
+                if (counts[index] > average && counts[index] > 0) {
+                    peaksFound = true;
+                    const li = document.createElement('li');
+                    li.className = "flex justify-between items-center bg-indigo-50 px-3 py-2 rounded";
+                    li.innerHTML = `<span class="font-medium text-slate-700">${date}</span> <span class="bg-indigo-200 text-indigo-800 py-0.5 px-2 rounded-full text-xs font-medium">${counts[index]} Alarme</span>`;
+                    peakList.appendChild(li);
+                }
+            });
+
+            if (!peaksFound) {
+                peakList.innerHTML = "<li class='text-slate-500 italic p-2'>Keine Peaks über dem Durchschnitt im gewählten Zeitraum.</li>";
+            }
+
+            renderChart(labels, counts, average);
+        }
+
+        function renderChart(labels, data, average) {
+            const ctx = document.getElementById('alarmChart').getContext('2d');
+            
+            if (myChart) {
+                myChart.destroy();
+            }
+
+            const averageLine = Array(labels.length).fill(average);
+
+            // Chart Konfiguration
+            const chartConfig = {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Anzahl 8222 Alarme',
+                            data: data,
+                            backgroundColor: 'rgba(99, 102, 241, 0.8)',
+                            borderColor: 'rgb(79, 70, 229)',
+                            borderWidth: 1,
+                            borderRadius: 4,
+                            order: 2
+                        },
+                        {
+                            label: 'Durchschnitt',
+                            data: averageLine,
+                            type: 'line',
+                            borderColor: 'rgba(239, 68, 68, 0.8)',
+                            backgroundColor: 'transparent',
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            pointRadius: 0,
+                            order: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        intersect: true,
+                        mode: 'index',
+                    },
+                    onClick: (e, elements, chart) => {
+                        // Klick auf die X-Achse abfangen (funktioniert auch ohne Balken)
+                        const xAxis = chart.scales.x;
+                        const dataIndex = xAxis.getValueForPixel(e.x);
+
+                        if (dataIndex >= 0 && dataIndex < chart.data.labels.length) {
+                            const clickedDate = chart.data.labels[dataIndex];
+                            toggleMarker(clickedDate);
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { precision: 0 },
+                            title: { display: true, text: 'Anzahl Alarme' }
+                        },
+                        x: {
+                            title: { display: false },
+                            grid: { display: false }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                            padding: 12,
+                            titleFont: { size: 14 },
+                            bodyFont: { size: 13 }
+                        },
+                        legend: {
+                            position: 'top',
+                            labels: { usePointStyle: true, padding: 20 }
+                        },
+                        annotation: {
+                            annotations: chartMarkers
+                        }
+                    }
+                }
+            };
+
+            myChart = new Chart(ctx, chartConfig);
+        }
+
+        // --- Marker Funktionen ---
+        
+        function toggleMarker(dateStr) {
+            if (activeDates[dateStr]) {
+                // Marker existiert bereits -> löschen
+                const markerId = activeDates[dateStr].id;
+                delete chartMarkers[markerId];
+                delete activeDates[dateStr];
+                myChart.update();
+                updateMarkerUI();
+            } else {
+                // Marker existiert noch nicht -> hinzufügen
+                markerCount++;
+                const markerId = 'marker_' + markerCount;
+                const markerLabel = 'M' + markerCount;
+
+                activeDates[dateStr] = { id: markerId, label: markerLabel };
+
+                // Chart Annotation hinzufügen
+                chartMarkers[markerId] = {
+                    type: 'line',
+                    scaleID: 'x',
+                    value: dateStr,
+                    borderColor: 'rgb(245, 158, 11)', // Amber color
+                    borderWidth: 2,
+                    borderDash: [4, 4],
+                    label: {
+                        display: true,
+                        content: markerLabel,
+                        position: 'start',
+                        backgroundColor: 'rgba(245, 158, 11, 0.9)',
+                        color: 'white',
+                        font: { size: 11 },
+                        padding: { top: 4, bottom: 4, left: 6, right: 6 }
+                    }
+                };
+
+                myChart.update();
+                updateMarkerUI();
+            }
+        }
+
+        function updateMarkerUI() {
+            const container = document.getElementById('markerContainer');
+            const list = document.getElementById('markerList');
+            list.innerHTML = ''; // Liste leeren
+
+            const dates = Object.keys(activeDates);
+            
+            if (dates.length === 0) {
+                container.classList.add('hidden');
+                return;
+            }
+
+            container.classList.remove('hidden');
+
+            dates.forEach(dateStr => {
+                const info = activeDates[dateStr];
+                const badge = document.createElement('div');
+                badge.className = 'bg-amber-100 text-amber-800 text-xs px-2.5 py-1 rounded-full flex items-center border border-amber-200 cursor-pointer hover:bg-red-100 hover:text-red-800 hover:border-red-200 transition-colors';
+                badge.innerHTML = `<span>${info.label}:</span> <span class="ml-1">${dateStr}</span> <span class="ml-2 text-red-500 hover:text-red-700">×</span>`;
+                badge.onclick = () => toggleMarker(dateStr);
+                list.appendChild(badge);
+            });
+        }
+
+        function clearMarkers() {
+            markerCount = 0;
+            chartMarkers = {};
+            activeDates = {};
+            if (myChart) {
+                myChart.options.plugins.annotation.annotations = chartMarkers;
+                myChart.update();
+            }
+            updateMarkerUI();
+        }
+
+        document.getElementById('clearMarkersBtn').addEventListener('click', clearMarkers);
+
+        // --- Export Funktion ---
+        
+        document.getElementById('downloadChartBtn').addEventListener('click', () => {
+            if (!myChart) return;
+            
+            // Weißen Hintergrund für den Export erzwingen, da PNG sonst transparent ist
+            const canvas = document.getElementById('alarmChart');
+            const context = canvas.getContext('2d');
+            context.save();
+            context.globalCompositeOperation = 'destination-over';
+            context.fillStyle = 'white';
+            context.fillRect(0, 0, canvas.width, canvas.height);
+            
+            const imageLink = document.createElement('a');
+            imageLink.download = 'Alarm_8222_Analyse.png';
+            imageLink.href = canvas.toDataURL('image/png', 1.0);
+            imageLink.click();
+            
+            context.restore();
+        });
+
+    </script>
+</body>
+</html>
