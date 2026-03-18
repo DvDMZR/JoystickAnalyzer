@@ -132,17 +132,6 @@
                 </div>
                 <div id="errorMessage" class="hidden p-3 bg-red-50 text-red-700 rounded-lg text-sm border border-red-200"></div>
 
-                <div class="flex items-center gap-3 px-4 py-2.5 border border-teal-200 rounded-lg bg-teal-50">
-                    <label for="fileUpload2" class="flex items-center gap-1.5 cursor-pointer text-sm font-medium text-teal-600 hover:text-teal-800 whitespace-nowrap shrink-0">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-                        OPTIONAL: Vollständige Alarmliste für Tagesdetails
-                    </label>
-                    <input type="file" id="fileUpload2" accept=".xlsx, .xls, .csv" class="hidden">
-                    <span class="text-teal-200 text-sm">|</span>
-                    <p id="fileName2" class="text-sm text-teal-500 flex-1 truncate">Noch keine Detaildatei gewählt</p>
-                    <div id="loadingIndicator2" class="hidden text-xs text-teal-500 shrink-0">Lädt…</div>
-                </div>
-                <div id="errorMessage2" class="hidden p-3 bg-red-50 text-red-700 rounded-lg text-sm border border-red-200"></div>
             </div>
 
             <!-- Analyse-Bereich -->
@@ -373,8 +362,6 @@
         // ── Fehler-Helfer ─────────────────────────────────────────────────────────
         function showError(msg)  { const e = document.getElementById('errorMessage');  e.innerHTML = msg; e.classList.remove('hidden'); }
         function hideError()     { document.getElementById('errorMessage').classList.add('hidden'); }
-        function showError2(msg) { const e = document.getElementById('errorMessage2'); e.innerHTML = msg; e.classList.remove('hidden'); }
-        function hideError2()    { document.getElementById('errorMessage2').classList.add('hidden'); }
 
         // ── Datum-Helfer ──────────────────────────────────────────────────────────
         function formatDateToYYYYMMDD(dateInput) {
@@ -473,38 +460,6 @@
             reader.readAsArrayBuffer(file);
         });
 
-        // ── Upload 2 ──────────────────────────────────────────────────────────────
-        document.getElementById('fileUpload2').addEventListener('change', function (e) {
-            const file = e.target.files[0]; if (!file) return;
-            document.getElementById('fileName2').textContent = file.name;
-            document.getElementById('loadingIndicator2').classList.remove('hidden');
-            hideError2();
-            const reader = new FileReader();
-            reader.onload = ev => {
-                try {
-                    const { json } = parseFileToJson(ev.target.result, file.name);
-                    allAlarmsDataSecond = json.map(row => {
-                        const rawTime = row.alarmTime || row.alarmDate || '';
-                        let timeStr = '';
-                        if (typeof rawTime === 'string') { const m = rawTime.match(/(\d{2}:\d{2}:\d{2})/); if (m) timeStr = m[1]; }
-                        else if (rawTime instanceof Date) timeStr = rawTime.toTimeString().substring(0, 8);
-                        return {
-                            date: formatDateToYYYYMMDD(rawTime), time: timeStr,
-                            severity: parseInt(row.severity || row.Severity || row.alarmSeverity || '0', 10),
-                            message: String(row.message || row.Message || ''),
-                            senderNode: String(row.senderNode || '')
-                        };
-                    }).filter(i => i.date !== null);
-                    document.getElementById('fileName2').textContent = allAlarmsDataSecond.length === 0
-                        ? 'Keine Einträge gefunden'
-                        : `${file.name} (${allAlarmsDataSecond.length} Einträge)`;
-                    if (allAlarmsDataSecond.length === 0) showError2('Keine verwertbaren Einträge in der Detaildatei.');
-                } catch { showError2('Fehler: Detaildatei konnte nicht gelesen werden.'); }
-                finally { document.getElementById('loadingIndicator2').classList.add('hidden'); }
-            };
-            reader.readAsArrayBuffer(file);
-        });
-
         // ── Schnellauswahl ────────────────────────────────────────────────────────
         function setActivePreset(btn) {
             document.querySelectorAll('.preset-btn').forEach(b => {
@@ -534,6 +489,18 @@
         // ── Hauptdatei verarbeiten ────────────────────────────────────────────────
         function processExcelData(data, anlagenNameFromFile) {
             let anlage = anlagenNameFromFile || null;
+            allAlarmsDataSecond = data.map(row => {
+                const rawTime = row.alarmTime || row.alarmDate || '';
+                let timeStr = '';
+                if (typeof rawTime === 'string') { const m = rawTime.match(/(\d{2}:\d{2}:\d{2})/); if (m) timeStr = m[1]; }
+                else if (rawTime instanceof Date) timeStr = rawTime.toTimeString().substring(0, 8);
+                return {
+                    date: formatDateToYYYYMMDD(rawTime), time: timeStr,
+                    severity: parseInt(row.severity || row.Severity || row.alarmSeverity || '0', 10),
+                    message: String(row.message || row.Message || ''),
+                    senderNode: String(row.senderNode || '')
+                };
+            }).filter(i => i.date !== null);
             allAlarmsData = data
                 .filter(row => String(row.message || '').includes('8222'))
                 .map(row => {
@@ -906,10 +873,6 @@
             document.getElementById('detailDate').textContent = fmtDate(dateStr);
             freqDiv.classList.add('hidden');
             freqDiv.innerHTML = '';
-            if (allAlarmsDataSecond.length === 0) {
-                content.innerHTML = '<p class="text-slate-400 italic text-xs p-2">Detaildatei hochladen, um Severity-3-Alarme zu sehen.</p>';
-                panel.classList.remove('hidden'); return;
-            }
             const alarms = allAlarmsDataSecond.filter(i => i.date === dateStr && i.severity === 3);
             if (alarms.length === 0) {
                 content.innerHTML = '<p class="text-slate-400 italic text-xs p-2">Keine Severity-3-Alarme an diesem Tag.</p>';
