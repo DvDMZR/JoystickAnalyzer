@@ -8,12 +8,12 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        /* Dual-Range-Schieber */
-        .range-slider-wrapper {
+        /* Gemeinsame Range-Slider Basis */
+        .rs-wrapper {
             position: relative;
             height: 28px;
         }
-        .range-slider-wrapper input[type="range"] {
+        .rs-wrapper input[type="range"] {
             position: absolute;
             width: 100%;
             height: 4px;
@@ -25,210 +25,284 @@
             top: 50%;
             transform: translateY(-50%);
         }
-        .range-slider-wrapper input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
-            background: #6366f1;
-            cursor: pointer;
-            pointer-events: all;
-            border: 2px solid white;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-        }
-        .range-slider-wrapper input[type="range"]::-moz-range-thumb {
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
-            background: #6366f1;
-            cursor: pointer;
-            pointer-events: all;
-            border: 2px solid white;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-            border: none;
-        }
-        .range-track-bg {
+        .rs-track-bg {
             position: absolute;
-            top: 50%;
-            transform: translateY(-50%);
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: #e2e8f0;
-            border-radius: 2px;
+            top: 50%; transform: translateY(-50%);
+            left: 0; right: 0;
+            height: 4px; background: #e2e8f0; border-radius: 2px;
             pointer-events: none;
         }
-        .range-track-fill {
+        .rs-track-fill {
             position: absolute;
-            top: 50%;
-            transform: translateY(-50%);
-            height: 4px;
-            background: #6366f1;
-            border-radius: 2px;
+            top: 50%; transform: translateY(-50%);
+            height: 4px; border-radius: 2px;
             pointer-events: none;
+        }
+        /* Bereich 1 – orange */
+        #sliderLeft1::-webkit-slider-thumb,
+        #sliderRight1::-webkit-slider-thumb {
+            -webkit-appearance: none; appearance: none;
+            width: 18px; height: 18px; border-radius: 50%;
+            background: #f97316; cursor: pointer;
+            pointer-events: all;
+            border: 2px solid white;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+        }
+        #sliderLeft1::-moz-range-thumb,
+        #sliderRight1::-moz-range-thumb {
+            width: 18px; height: 18px; border-radius: 50%;
+            background: #f97316; cursor: pointer;
+            pointer-events: all; border: none;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+        }
+        /* Bereich 2 – teal */
+        #sliderLeft2::-webkit-slider-thumb,
+        #sliderRight2::-webkit-slider-thumb {
+            -webkit-appearance: none; appearance: none;
+            width: 18px; height: 18px; border-radius: 50%;
+            background: #0d9488; cursor: pointer;
+            pointer-events: all;
+            border: 2px solid white;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+        }
+        #sliderLeft2::-moz-range-thumb,
+        #sliderRight2::-moz-range-thumb {
+            width: 18px; height: 18px; border-radius: 50%;
+            background: #0d9488; cursor: pointer;
+            pointer-events: all; border: none;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.25);
         }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-800 font-sans p-4 md:p-6">
+<body class="bg-slate-100 text-slate-800 font-sans p-4 md:p-6">
 
-    <div class="max-w-6xl mx-auto bg-white rounded-xl shadow-md overflow-hidden">
+    <div class="max-w-6xl mx-auto bg-white rounded-xl shadow-sm border border-slate-200">
         <div class="p-6 md:p-8">
-            <h1 class="text-2xl text-indigo-600 mb-6">Joystick Use (Alarm 8222) Analyse</h1>
+            <h1 class="text-xl font-semibold text-indigo-700 mb-5">Joystick Use (Alarm 8222) Analyse</h1>
 
-            <!-- Upload 1: Hauptdatei (8222-Alarme) -->
-            <div class="mb-4 p-6 border-2 border-dashed border-slate-300 rounded-lg text-center bg-slate-50 hover:bg-slate-100 transition-colors">
-                <label for="fileUpload" class="cursor-pointer text-indigo-500 hover:text-indigo-700 text-lg flex flex-col items-center justify-center">
-                    <svg class="w-10 h-10 mb-3 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
-                    Joystick-Use-Datei hochladen (Alarm 8222) (.xlsx, .xls, .csv)
-                </label>
-                <input type="file" id="fileUpload" accept=".xlsx, .xls, .csv" class="hidden">
-                <p id="fileName" class="mt-2 text-sm text-slate-500">Noch keine Datei ausgewählt</p>
-                <div id="loadingIndicator" class="hidden mt-4 text-indigo-600">Datei wird verarbeitet...</div>
-                <div id="errorMessage" class="hidden mt-4 p-4 bg-red-50 text-red-700 rounded-md text-sm text-left border border-red-200"></div>
+            <!-- Kompakte Upload-Zeilen -->
+            <div class="flex flex-col gap-2 mb-6">
+                <div class="flex items-center gap-3 px-4 py-2.5 border border-slate-200 rounded-lg bg-slate-50">
+                    <label for="fileUpload" class="flex items-center gap-1.5 cursor-pointer text-sm font-medium text-indigo-600 hover:text-indigo-800 whitespace-nowrap shrink-0">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                        Hauptdatei (Alarm 8222)
+                    </label>
+                    <input type="file" id="fileUpload" accept=".xlsx, .xls, .csv" class="hidden">
+                    <span class="text-slate-300 text-sm">|</span>
+                    <p id="fileName" class="text-sm text-slate-400 flex-1 truncate">Noch keine Datei gewählt</p>
+                    <div id="loadingIndicator" class="hidden text-xs text-indigo-500 shrink-0">Lädt…</div>
+                </div>
+                <div id="errorMessage" class="hidden p-3 bg-red-50 text-red-700 rounded-lg text-sm border border-red-200"></div>
+
+                <div class="flex items-center gap-3 px-4 py-2.5 border border-teal-200 rounded-lg bg-teal-50">
+                    <label for="fileUpload2" class="flex items-center gap-1.5 cursor-pointer text-sm font-medium text-teal-600 hover:text-teal-800 whitespace-nowrap shrink-0">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                        Detaildatei <span class="font-normal text-teal-400">(optional, für Severity-3)</span>
+                    </label>
+                    <input type="file" id="fileUpload2" accept=".xlsx, .xls, .csv" class="hidden">
+                    <span class="text-teal-200 text-sm">|</span>
+                    <p id="fileName2" class="text-sm text-teal-500 flex-1 truncate">Noch keine Detaildatei gewählt</p>
+                    <div id="loadingIndicator2" class="hidden text-xs text-teal-500 shrink-0">Lädt…</div>
+                </div>
+                <div id="errorMessage2" class="hidden p-3 bg-red-50 text-red-700 rounded-lg text-sm border border-red-200"></div>
             </div>
 
-            <!-- Upload 2: Detaildatei (alle Alarme, für Severity-3-Anzeige) -->
-            <div class="mb-8 p-5 border-2 border-dashed border-teal-200 rounded-lg text-center bg-teal-50 hover:bg-teal-100 transition-colors">
-                <label for="fileUpload2" class="cursor-pointer text-teal-600 hover:text-teal-800 flex flex-col items-center justify-center">
-                    <svg class="w-8 h-8 mb-2 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
-                    Optionale Detaildatei hochladen (alle Alarme – für Severity-3-Anzeige)
-                </label>
-                <input type="file" id="fileUpload2" accept=".xlsx, .xls, .csv" class="hidden">
-                <p id="fileName2" class="mt-2 text-sm text-slate-500">Noch keine Detaildatei ausgewählt</p>
-                <div id="loadingIndicator2" class="hidden mt-2 text-teal-600">Datei wird verarbeitet...</div>
-                <div id="errorMessage2" class="hidden mt-3 p-4 bg-red-50 text-red-700 rounded-md text-sm text-left border border-red-200"></div>
-            </div>
-
-            <!-- Analyse-Bereich (versteckt bis Datei geladen) -->
+            <!-- Analyse-Bereich -->
             <div id="analysisSection" class="hidden">
 
-                <!-- Info & Datumsauswahl -->
-                <div class="bg-indigo-50 p-4 rounded-lg mb-6">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Info & Zeitraum -->
+                <div class="bg-indigo-50 border border-indigo-100 p-4 rounded-lg mb-5">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                         <div>
-                            <h2 class="text-sm font-semibold text-indigo-800 mb-1 uppercase tracking-wide">Analysierte Anlage</h2>
-                            <p id="anlageName" class="text-xl text-slate-800 font-medium">Lade Daten...</p>
+                            <p class="text-xs font-semibold text-indigo-600 uppercase tracking-wide mb-0.5">Analysierte Anlage</p>
+                            <p id="anlageName" class="text-lg font-semibold text-slate-800">–</p>
                         </div>
                         <div>
-                            <h2 class="text-sm font-semibold text-indigo-800 mb-1 uppercase tracking-wide">Gesamter Zeitraum der Datei</h2>
-                            <p id="totalDateRange" class="text-slate-700 font-medium mt-1"></p>
+                            <p class="text-xs font-semibold text-indigo-600 uppercase tracking-wide mb-0.5">Zeitraum der Datei</p>
+                            <p id="totalDateRange" class="text-slate-700 font-medium mt-0.5">–</p>
                         </div>
                     </div>
-                    <hr class="border-indigo-200 my-4">
-                    <h2 class="text-sm font-semibold text-indigo-800 mb-3 uppercase tracking-wide">Analysezeitraum</h2>
-                    <!-- Schnellauswahl-Buttons -->
-                    <div class="flex flex-wrap gap-2 mb-4" id="presetBtns">
-                        <button data-days="7"  class="preset-btn px-3 py-1.5 rounded-md text-sm font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors">Letzte 7 Tage</button>
-                        <button data-days="30" class="preset-btn px-3 py-1.5 rounded-md text-sm font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors">Letzte 30 Tage</button>
-                        <button data-days="90" class="preset-btn px-3 py-1.5 rounded-md text-sm font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors">Letzte 90 Tage</button>
-                        <button data-days="0"  class="preset-btn px-3 py-1.5 rounded-md text-sm font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors">Eigener Zeitraum</button>
+                    <hr class="border-indigo-200 mb-4">
+                    <p class="text-xs font-semibold text-indigo-600 uppercase tracking-wide mb-2">Analysezeitraum</p>
+                    <div class="flex flex-wrap gap-2 mb-3" id="presetBtns">
+                        <button data-days="7"   class="preset-btn px-3 py-1.5 rounded-md text-sm font-medium bg-white border border-slate-200 text-slate-600 hover:border-indigo-300 transition-colors">7 Tage</button>
+                        <button data-days="30"  class="preset-btn px-3 py-1.5 rounded-md text-sm font-medium bg-white border border-slate-200 text-slate-600 hover:border-indigo-300 transition-colors">30 Tage</button>
+                        <button data-days="90"  class="preset-btn px-3 py-1.5 rounded-md text-sm font-medium bg-white border border-slate-200 text-slate-600 hover:border-indigo-300 transition-colors">90 Tage</button>
+                        <button data-days="180" class="preset-btn px-3 py-1.5 rounded-md text-sm font-medium bg-white border border-slate-200 text-slate-600 hover:border-indigo-300 transition-colors">180 Tage</button>
+                        <button data-days="0"   class="preset-btn px-3 py-1.5 rounded-md text-sm font-medium bg-white border border-slate-200 text-slate-600 hover:border-indigo-300 transition-colors">Eigener Zeitraum</button>
                     </div>
-                    <!-- Manuelle Datumseingabe (nur bei "Eigener Zeitraum") -->
-                    <div id="customDateRow" class="hidden flex flex-col sm:flex-row gap-4 items-end">
-                        <div class="w-full sm:w-auto">
-                            <label for="startDate" class="block text-sm text-slate-600 mb-1">Startdatum:</label>
-                            <input type="date" id="startDate" class="block w-full rounded-md border-slate-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 border p-2">
+                    <div id="customDateRow" class="hidden flex flex-col sm:flex-row gap-3 items-end">
+                        <div>
+                            <label for="startDate" class="block text-xs text-slate-500 mb-1">Von</label>
+                            <input type="date" id="startDate" class="rounded-md border-slate-300 border p-2 text-sm focus:border-indigo-300 focus:outline-none">
                         </div>
-                        <div class="w-full sm:w-auto">
-                            <label for="endDate" class="block text-sm text-slate-600 mb-1">Enddatum:</label>
-                            <input type="date" id="endDate" class="block w-full rounded-md border-slate-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 border p-2">
+                        <div>
+                            <label for="endDate" class="block text-xs text-slate-500 mb-1">Bis</label>
+                            <input type="date" id="endDate" class="rounded-md border-slate-300 border p-2 text-sm focus:border-indigo-300 focus:outline-none">
                         </div>
-                        <div class="w-full sm:w-auto">
-                            <button id="updateBtn" class="w-full sm:w-auto bg-indigo-500 hover:bg-indigo-600 text-white py-2 px-6 rounded-md shadow transition-colors">Aktualisieren</button>
-                        </div>
+                        <button id="updateBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-5 rounded-md text-sm transition-colors">Anwenden</button>
                     </div>
                 </div>
 
                 <!-- Statistik-Karten -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-4">
-                    <div class="bg-white p-6 rounded-lg border border-slate-200 shadow-sm flex flex-col justify-center items-center text-center">
-                        <h3 class="text-lg text-slate-700 mb-2">Alarme Gesamt</h3>
-                        <p id="totalAlarmsSelected" class="text-5xl font-light text-indigo-600 my-2">0</p>
-                        <p class="text-sm text-slate-500 mt-1">Im gewählten Zeitraum</p>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
+                    <div class="bg-white p-5 rounded-lg border border-slate-200 flex flex-col items-center text-center">
+                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">Alarme Gesamt</p>
+                        <p id="totalAlarmsSelected" class="text-5xl font-light text-indigo-600 my-1">0</p>
+                        <p class="text-xs text-slate-400 mt-1">Im gewählten Zeitraum</p>
                     </div>
-                    <div class="bg-white p-6 rounded-lg border border-slate-200 shadow-sm flex flex-col justify-center items-center text-center">
-                        <h3 class="text-lg text-slate-700 mb-2">Durchschnitt pro Tag</h3>
-                        <p id="avgAlarms" class="text-5xl font-light text-emerald-500 my-2">0</p>
-                        <p class="text-sm text-slate-500 mt-1">Ø im gewählten Zeitraum</p>
+                    <div class="bg-white p-5 rounded-lg border border-slate-200 flex flex-col items-center text-center">
+                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">Ø pro Tag</p>
+                        <p id="avgAlarms" class="text-5xl font-light text-emerald-500 my-1">0</p>
+                        <p class="text-xs text-slate-400 mt-1">Durchschnitt</p>
                         <p id="trendIndicator" class="text-sm font-medium mt-2"></p>
                     </div>
-                    <div class="bg-white p-6 rounded-lg border border-slate-200 shadow-sm h-48 flex flex-col">
-                        <h3 class="text-lg text-slate-700 mb-3">Peak-Tage (> Durchschnitt)</h3>
-                        <div class="overflow-y-auto flex-grow pr-2">
-                            <ul id="peakList" class="space-y-2 text-sm text-slate-600"></ul>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Bereichsauswahl-Karte (versteckt bis Bereich gewählt) -->
-                <div id="selectionCard" class="hidden mb-8 bg-orange-50 p-4 rounded-lg border border-orange-200">
-                    <div class="flex justify-between items-center mb-3">
-                        <h3 class="text-sm font-semibold text-orange-800 uppercase tracking-wide">Bereichsauswahl</h3>
-                        <button id="resetSelectionBtn" class="text-xs text-orange-600 hover:text-orange-800 underline">Auswahl zurücksetzen</button>
-                    </div>
-                    <p id="selectionRangeLabel" class="text-sm text-slate-600 mb-3"></p>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="bg-white rounded-md p-3 border border-orange-100 text-center">
-                            <p class="text-xs text-slate-500 mb-1">Bereich gesamt</p>
-                            <p id="selectionTotal" class="text-3xl font-light text-orange-600">–</p>
-                            <p id="selectionAvg" class="text-sm text-slate-500 mt-1">Ø – / Tag</p>
-                        </div>
-                        <div class="bg-white rounded-md p-3 border border-slate-100 text-center">
-                            <p class="text-xs text-slate-500 mb-1">Gesamtzeitraum</p>
-                            <p id="overallTotalForSel" class="text-3xl font-light text-indigo-500">–</p>
-                            <p id="overallAvgForSel" class="text-sm text-slate-500 mt-1">Ø – / Tag</p>
+                    <div class="bg-white p-5 rounded-lg border border-slate-200 flex flex-col" style="min-height:160px">
+                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">Peak-Tage</p>
+                        <div class="overflow-y-auto flex-grow">
+                            <ul id="peakList" class="space-y-1.5 text-sm text-slate-600"></ul>
                         </div>
                     </div>
                 </div>
 
                 <!-- Chart-Bereich -->
-                <div class="bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
-                    <div class="flex flex-wrap justify-between items-center mb-3 ml-2 gap-2">
-                        <h3 class="text-lg text-slate-700">Joystick Use – Verlauf (Alarm 8222)</h3>
+                <div class="bg-white rounded-lg border border-slate-200">
+                    <!-- Chart-Header -->
+                    <div class="flex flex-wrap justify-between items-center px-4 pt-4 pb-2 gap-2">
+                        <h3 class="text-sm font-semibold text-slate-600">Joystick Use – Verlauf (Alarm 8222)</h3>
                         <div class="flex items-center gap-2 flex-wrap">
-                            <!-- Toggle-Buttons für Linien -->
                             <button id="toggleAvgBtn" data-idx="1"
-                                class="toggle-line-btn text-xs px-2.5 py-1 rounded-full border border-red-300 text-red-600 bg-red-50 hover:bg-red-100 transition-colors">
-                                ── Durchschnitt
+                                class="toggle-line-btn text-xs px-2.5 py-1 rounded-full border border-red-200 text-red-500 bg-red-50 hover:bg-red-100 transition-colors">
+                                ── Ø gesamt
                             </button>
                             <button id="toggle7dayBtn" data-idx="2"
-                                class="toggle-line-btn text-xs px-2.5 py-1 rounded-full border border-orange-300 text-orange-600 bg-orange-50 hover:bg-orange-100 transition-colors">
+                                class="toggle-line-btn text-xs px-2.5 py-1 rounded-full border border-orange-200 text-orange-500 bg-orange-50 hover:bg-orange-100 transition-colors">
                                 ·· 7-Tage-Ø
                             </button>
-                            <button id="downloadChartBtn" class="text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 py-1.5 px-3 rounded flex items-center gap-2 transition-colors">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                                Speichern
+                            <button id="downloadChartBtn" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 py-1 px-3 rounded-full flex items-center gap-1.5 border border-slate-200 transition-colors">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                                Export
                             </button>
                         </div>
                     </div>
 
-                    <div class="relative h-64 md:h-80 w-full bg-white">
+                    <!-- Canvas -->
+                    <div class="relative h-64 md:h-80 w-full px-2">
                         <canvas id="alarmChart"></canvas>
                     </div>
 
-                    <!-- Dual-Range-Schieber -->
-                    <div id="rangeSliderWrapper" class="hidden mt-5 px-2">
-                        <div class="text-xs text-slate-500 mb-2 font-medium uppercase tracking-wide">Bereich eingrenzen</div>
-                        <div class="relative px-2">
-                            <div class="range-track-bg"></div>
-                            <div id="rangeTrackFill" class="range-track-fill"></div>
-                            <div class="range-slider-wrapper">
-                                <input type="range" id="sliderLeft"  min="0" value="0"   step="1">
-                                <input type="range" id="sliderRight" min="0" value="100" step="1">
+                    <!-- Dual-Schieber Bereich 1 & 2 -->
+                    <div id="slidersSection" class="hidden px-5 pt-4 pb-2">
+                        <!-- Bereich 1 -->
+                        <div class="mb-4">
+                            <div class="flex justify-between items-center mb-1.5">
+                                <span class="text-xs font-semibold text-orange-600 uppercase tracking-wide">Bereich 1</span>
+                                <button id="clearSel1Btn" class="text-xs text-slate-400 hover:text-slate-600">Zurücksetzen</button>
+                            </div>
+                            <div class="relative">
+                                <div class="rs-track-bg"></div>
+                                <div id="fill1" class="rs-track-fill" style="background:#f97316"></div>
+                                <div class="rs-wrapper">
+                                    <input type="range" id="sliderLeft1"  min="0" value="0"   step="1">
+                                    <input type="range" id="sliderRight1" min="0" value="100" step="1">
+                                </div>
+                            </div>
+                            <div class="flex justify-between text-xs text-orange-700 mt-1.5">
+                                <span id="lbl1L" class="bg-orange-50 border border-orange-200 px-2 py-0.5 rounded">–</span>
+                                <span id="lbl1R" class="bg-orange-50 border border-orange-200 px-2 py-0.5 rounded">–</span>
                             </div>
                         </div>
-                        <div class="flex justify-between text-xs text-slate-600 mt-2 font-medium">
-                            <span id="sliderLabelLeft"  class="bg-orange-100 text-orange-700 px-2 py-0.5 rounded">–</span>
-                            <span id="sliderLabelRight" class="bg-orange-100 text-orange-700 px-2 py-0.5 rounded">–</span>
+                        <!-- Bereich 2 -->
+                        <div>
+                            <div class="flex justify-between items-center mb-1.5">
+                                <span class="text-xs font-semibold text-teal-600 uppercase tracking-wide">Bereich 2</span>
+                                <button id="clearSel2Btn" class="text-xs text-slate-400 hover:text-slate-600">Zurücksetzen</button>
+                            </div>
+                            <div class="relative">
+                                <div class="rs-track-bg"></div>
+                                <div id="fill2" class="rs-track-fill" style="background:#0d9488"></div>
+                                <div class="rs-wrapper">
+                                    <input type="range" id="sliderLeft2"  min="0" value="0"   step="1">
+                                    <input type="range" id="sliderRight2" min="0" value="100" step="1">
+                                </div>
+                            </div>
+                            <div class="flex justify-between text-xs text-teal-700 mt-1.5">
+                                <span id="lbl2L" class="bg-teal-50 border border-teal-200 px-2 py-0.5 rounded">–</span>
+                                <span id="lbl2R" class="bg-teal-50 border border-teal-200 px-2 py-0.5 rounded">–</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bereichs-Vergleichs-Karte (unter den Schiebern) -->
+                    <div id="selectionCard" class="hidden mx-4 mb-4 mt-3 rounded-lg border border-slate-200 overflow-hidden">
+                        <div id="selCardSingle" class="hidden p-4">
+                            <!-- Nur ein Bereich gewählt -->
+                            <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2" id="singleCardTitle"></p>
+                            <p id="singleRangeLabel" class="text-xs text-slate-500 mb-3"></p>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div class="bg-slate-50 rounded p-3 text-center">
+                                    <p class="text-xs text-slate-400 mb-0.5">Alarme</p>
+                                    <p id="singleTotal" class="text-2xl font-light text-slate-700">–</p>
+                                </div>
+                                <div class="bg-slate-50 rounded p-3 text-center">
+                                    <p class="text-xs text-slate-400 mb-0.5">Ø / Tag</p>
+                                    <p id="singleAvg" class="text-2xl font-light text-slate-700">–</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="selCardCompare" class="hidden">
+                            <!-- Beide Bereiche gewählt → Vergleich -->
+                            <div class="grid grid-cols-2 divide-x divide-slate-200">
+                                <div class="p-4">
+                                    <p class="text-xs font-semibold text-orange-600 uppercase tracking-wide mb-1">Bereich 1</p>
+                                    <p id="cmp1Range" class="text-xs text-slate-400 mb-3"></p>
+                                    <div class="space-y-2">
+                                        <div class="flex justify-between items-baseline">
+                                            <span class="text-xs text-slate-400">Alarme</span>
+                                            <span id="cmp1Total" class="text-xl font-light text-slate-700">–</span>
+                                        </div>
+                                        <div class="flex justify-between items-baseline">
+                                            <span class="text-xs text-slate-400">Ø / Tag</span>
+                                            <span id="cmp1Avg" class="text-xl font-light text-slate-700">–</span>
+                                        </div>
+                                        <div class="flex justify-between items-baseline">
+                                            <span class="text-xs text-slate-400">Tage</span>
+                                            <span id="cmp1Days" class="text-xl font-light text-slate-700">–</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="p-4">
+                                    <p class="text-xs font-semibold text-teal-600 uppercase tracking-wide mb-1">Bereich 2</p>
+                                    <p id="cmp2Range" class="text-xs text-slate-400 mb-3"></p>
+                                    <div class="space-y-2">
+                                        <div class="flex justify-between items-baseline">
+                                            <span class="text-xs text-slate-400">Alarme</span>
+                                            <span id="cmp2Total" class="text-xl font-light text-slate-700">–</span>
+                                        </div>
+                                        <div class="flex justify-between items-baseline">
+                                            <span class="text-xs text-slate-400">Ø / Tag</span>
+                                            <span id="cmp2Avg" class="text-xl font-light text-slate-700">–</span>
+                                        </div>
+                                        <div class="flex justify-between items-baseline">
+                                            <span class="text-xs text-slate-400">Tage</span>
+                                            <span id="cmp2Days" class="text-xl font-light text-slate-700">–</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Differenz-Zeile -->
+                            <div id="cmpDiff" class="border-t border-slate-200 px-4 py-2.5 flex justify-between items-center bg-slate-50 text-xs text-slate-500">
+                                <span>Differenz Ø/Tag (B2 vs. B1)</span>
+                                <span id="cmpDiffValue" class="font-semibold"></span>
+                            </div>
                         </div>
                     </div>
 
                     <!-- Severity-3-Detail-Panel -->
-                    <div id="detailPanel" class="hidden mt-4 pt-4 border-t border-slate-100">
+                    <div id="detailPanel" class="hidden mx-4 mb-4 pt-3 border-t border-slate-100">
                         <div class="flex justify-between items-center mb-2">
-                            <h4 class="text-sm font-semibold text-slate-700">Severity-3-Alarme am <span id="detailDate" class="text-teal-700"></span></h4>
-                            <button id="closeDetailBtn" class="text-slate-400 hover:text-slate-600 text-xl leading-none">&times;</button>
+                            <h4 class="text-sm font-semibold text-slate-600">Severity-3 am <span id="detailDate" class="text-teal-600"></span></h4>
+                            <button id="closeDetailBtn" class="text-slate-300 hover:text-slate-500 text-lg leading-none">&times;</button>
                         </div>
                         <div id="detailContent" class="overflow-y-auto max-h-48 text-sm"></div>
                     </div>
@@ -242,189 +316,42 @@
     (function () {
         'use strict';
 
-        let allAlarmsData = [];
+        let allAlarmsData       = [];
         let allAlarmsDataSecond = [];
-        let myChart = null;
-        let selectionStart = null;
-        let selectionEnd = null;
+        let myChart     = null;
         let chartLabels = [];
         let chartCounts = [];
         let dataMinDate = null;
         let dataMaxDate = null;
 
+        // Bereich 1 (orange) & Bereich 2 (teal)
+        let sel1Start = null, sel1End = null;
+        let sel2Start = null, sel2End = null;
+
         // ── Fehler-Helfer ─────────────────────────────────────────────────────────
-
-        function showError(msg) {
-            const el = document.getElementById('errorMessage');
-            if (!el) return;
-            el.innerHTML = msg;
-            el.classList.remove('hidden');
-        }
-        function hideError() {
-            const el = document.getElementById('errorMessage');
-            if (el) el.classList.add('hidden');
-        }
-        function showError2(msg) {
-            const el = document.getElementById('errorMessage2');
-            if (!el) return;
-            el.innerHTML = msg;
-            el.classList.remove('hidden');
-        }
-        function hideError2() {
-            const el = document.getElementById('errorMessage2');
-            if (el) el.classList.add('hidden');
-        }
-
-        // ── Generischer Datei-Parser ──────────────────────────────────────────────
-
-        function parseFileToJson(arrayBuffer, fileName) {
-            const bytes = new Uint8Array(arrayBuffer);
-            const XLSX_MAGIC = [0x50, 0x4B];
-            const isActuallyXLSX = bytes.length > 2 && bytes[0] === XLSX_MAGIC[0] && bytes[1] === XLSX_MAGIC[1];
-            const isCSV = fileName.toLowerCase().endsWith('.csv') && !isActuallyXLSX;
-            let json = [];
-
-            if (isCSV) {
-                const decoder = new TextDecoder('windows-1252');
-                const text = decoder.decode(bytes);
-                const delimiter = text.indexOf(';') !== -1 ? ';' : ',';
-                const lines = text.split(/\r?\n/);
-
-                function parseCSVLine(line, delim) {
-                    const fields = [];
-                    let current = '';
-                    let inQuotes = false;
-                    for (let k = 0; k < line.length; k++) {
-                        const ch = line[k];
-                        if (ch === '"') {
-                            if (inQuotes && line[k + 1] === '"') { current += '"'; k++; }
-                            else { inQuotes = !inQuotes; }
-                        } else if (ch === delim && !inQuotes) {
-                            fields.push(current.trim()); current = '';
-                        } else {
-                            current += ch;
-                        }
-                    }
-                    fields.push(current.trim());
-                    return fields;
-                }
-
-                if (lines.length > 0) {
-                    const headers = parseCSVLine(lines[0], delimiter);
-                    for (let i = 1; i < lines.length; i++) {
-                        if (!lines[i].trim()) continue;
-                        const values = parseCSVLine(lines[i], delimiter);
-                        const row = {};
-                        for (let j = 0; j < headers.length; j++) {
-                            row[headers[j]] = values[j] !== undefined ? values[j] : '';
-                        }
-                        json.push(row);
-                    }
-                }
-            } else {
-                const workbook = XLSX.read(bytes, { type: 'array', cellDates: true });
-                const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-                const rawRows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-                const headerRowIndex = rawRows.findIndex(row =>
-                    row.some(cell => {
-                        const v = String(cell).toLowerCase().trim();
-                        return v === 'alarmtime' || v === 'alarmdate' || v === 'message';
-                    })
-                );
-                json = XLSX.utils.sheet_to_json(worksheet, { range: headerRowIndex >= 0 ? headerRowIndex : 0 });
-            }
-
-            return json;
-        }
-
-        // ── Upload 1: Hauptdatei ──────────────────────────────────────────────────
-
-        document.getElementById('fileUpload').addEventListener('change', function (e) {
-            const file = e.target.files[0];
-            if (!file) return;
-            document.getElementById('fileName').textContent = file.name;
-            document.getElementById('loadingIndicator').classList.remove('hidden');
-            document.getElementById('analysisSection').classList.add('hidden');
-            hideError();
-
-            const reader = new FileReader();
-            reader.onload = function (ev) {
-                try {
-                    processExcelData(parseFileToJson(ev.target.result, file.name));
-                } catch (error) {
-                    showError(
-                        error.message && error.message.includes('Encrypted')
-                            ? 'Die Datei ist verschlüsselt!<br>Bitte in Excel als CSV speichern und erneut hochladen.'
-                            : 'Verarbeitungsfehler: Die Datei konnte nicht gelesen werden.'
-                    );
-                } finally {
-                    document.getElementById('loadingIndicator').classList.add('hidden');
-                }
-            };
-            reader.readAsArrayBuffer(file);
-        });
-
-        // ── Upload 2: Detaildatei ─────────────────────────────────────────────────
-
-        document.getElementById('fileUpload2').addEventListener('change', function (e) {
-            const file = e.target.files[0];
-            if (!file) return;
-            document.getElementById('fileName2').textContent = file.name;
-            document.getElementById('loadingIndicator2').classList.remove('hidden');
-            hideError2();
-
-            const reader = new FileReader();
-            reader.onload = function (ev) {
-                try {
-                    const json = parseFileToJson(ev.target.result, file.name);
-                    allAlarmsDataSecond = json.map(row => {
-                        const rawTime = row.alarmTime || row.alarmDate || '';
-                        let timeStr = '';
-                        if (typeof rawTime === 'string') {
-                            const m = rawTime.match(/(\d{2}:\d{2}:\d{2})/);
-                            if (m) timeStr = m[1];
-                        } else if (rawTime instanceof Date) {
-                            timeStr = rawTime.toTimeString().substring(0, 8);
-                        }
-                        return {
-                            date: formatDateToYYYYMMDD(rawTime),
-                            time: timeStr,
-                            severity: parseInt(row.severity || row.Severity || row.alarmSeverity || '0', 10),
-                            message: String(row.message || row.Message || ''),
-                            senderNode: String(row.senderNode || '')
-                        };
-                    }).filter(item => item.date !== null);
-
-                    if (allAlarmsDataSecond.length === 0) {
-                        showError2('Keine verwertbaren Einträge in der Detaildatei gefunden.');
-                    } else {
-                        document.getElementById('fileName2').textContent =
-                            file.name + ' (' + allAlarmsDataSecond.length + ' Einträge geladen)';
-                    }
-                } catch (error) {
-                    showError2('Verarbeitungsfehler: Detaildatei konnte nicht gelesen werden.');
-                } finally {
-                    document.getElementById('loadingIndicator2').classList.add('hidden');
-                }
-            };
-            reader.readAsArrayBuffer(file);
-        });
+        function showError(msg)  { const e = document.getElementById('errorMessage');  e.innerHTML = msg; e.classList.remove('hidden'); }
+        function hideError()     { document.getElementById('errorMessage').classList.add('hidden'); }
+        function showError2(msg) { const e = document.getElementById('errorMessage2'); e.innerHTML = msg; e.classList.remove('hidden'); }
+        function hideError2()    { document.getElementById('errorMessage2').classList.add('hidden'); }
 
         // ── Datum-Helfer ──────────────────────────────────────────────────────────
-
         function formatDateToYYYYMMDD(dateInput) {
             if (!dateInput) return null;
             if (typeof dateInput === 'string') {
                 if (dateInput.match(/^\d{4}-\d{2}-\d{2}/)) return dateInput.substring(0, 10);
-                const deDateMatch = dateInput.match(/^(\d{2})\.(\d{2})\.(\d{4})/);
-                if (deDateMatch) return `${deDateMatch[3]}-${deDateMatch[2]}-${deDateMatch[1]}`;
+                const m = dateInput.match(/^(\d{2})\.(\d{2})\.(\d{4})/);
+                if (m) return `${m[3]}-${m[2]}-${m[1]}`;
             }
-            const dateObj = dateInput instanceof Date ? dateInput : new Date(dateInput);
-            if (isNaN(dateObj.getTime())) return null;
-            const y = dateObj.getFullYear();
-            const mo = String(dateObj.getMonth() + 1).padStart(2, '0');
-            const d = String(dateObj.getDate()).padStart(2, '0');
-            return `${y}-${mo}-${d}`;
+            const d = dateInput instanceof Date ? dateInput : new Date(dateInput);
+            if (isNaN(d.getTime())) return null;
+            return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        }
+
+        // DD.MM.YY Anzeige-Format
+        function fmtDate(iso) {
+            if (!iso || iso.length < 10) return iso || '–';
+            const [y, m, d] = iso.split('-');
+            return `${d}.${m}.${y.slice(2)}`;
         }
 
         function subtractDays(dateStr, days) {
@@ -433,15 +360,117 @@
             return formatDateToYYYYMMDD(d);
         }
 
-        // ── Schnellauswahl-Buttons ────────────────────────────────────────────────
+        // ── Datei-Parser ──────────────────────────────────────────────────────────
+        function parseFileToJson(arrayBuffer, fileName) {
+            const bytes = new Uint8Array(arrayBuffer);
+            const isActuallyXLSX = bytes.length > 2 && bytes[0] === 0x50 && bytes[1] === 0x4B;
+            const isCSV = fileName.toLowerCase().endsWith('.csv') && !isActuallyXLSX;
+            let json = [];
+            let anlagenName = null;
 
+            if (isCSV) {
+                const text = new TextDecoder('windows-1252').decode(bytes);
+                const delim = text.indexOf(';') !== -1 ? ';' : ',';
+                const lines = text.split(/\r?\n/);
+                function parseCSVLine(line, d) {
+                    const f = []; let cur = '', inQ = false;
+                    for (let k = 0; k < line.length; k++) {
+                        const ch = line[k];
+                        if (ch === '"') { if (inQ && line[k+1]==='"') { cur+='"'; k++; } else inQ=!inQ; }
+                        else if (ch === d && !inQ) { f.push(cur.trim()); cur=''; }
+                        else cur += ch;
+                    }
+                    f.push(cur.trim()); return f;
+                }
+                if (lines.length > 0) {
+                    const headers = parseCSVLine(lines[0], delim);
+                    for (let i = 1; i < lines.length; i++) {
+                        if (!lines[i].trim()) continue;
+                        const vals = parseCSVLine(lines[i], delim);
+                        const row = {};
+                        headers.forEach((h, j) => { row[h] = vals[j] !== undefined ? vals[j] : ''; });
+                        json.push(row);
+                    }
+                }
+            } else {
+                const wb = XLSX.read(bytes, { type: 'array', cellDates: true });
+                const ws = wb.Sheets[wb.SheetNames[0]];
+                const rawRows = XLSX.utils.sheet_to_json(ws, { header: 1 });
+                const headerIdx = rawRows.findIndex(row =>
+                    row.some(cell => { const v = String(cell).toLowerCase().trim(); return v === 'alarmtime' || v === 'alarmdate' || v === 'message'; })
+                );
+                // A1 = Anlagenname (wenn vor der Headerzeile)
+                if (headerIdx > 0 && rawRows[0] && rawRows[0][0]) {
+                    anlagenName = String(rawRows[0][0]).trim();
+                }
+                json = XLSX.utils.sheet_to_json(ws, { range: headerIdx >= 0 ? headerIdx : 0 });
+            }
+            return { json, anlagenName };
+        }
+
+        // ── Upload 1 ──────────────────────────────────────────────────────────────
+        document.getElementById('fileUpload').addEventListener('change', function (e) {
+            const file = e.target.files[0]; if (!file) return;
+            document.getElementById('fileName').textContent = file.name;
+            document.getElementById('loadingIndicator').classList.remove('hidden');
+            document.getElementById('analysisSection').classList.add('hidden');
+            hideError();
+            const reader = new FileReader();
+            reader.onload = ev => {
+                try {
+                    const { json, anlagenName } = parseFileToJson(ev.target.result, file.name);
+                    processExcelData(json, anlagenName);
+                } catch (err) {
+                    showError(err.message && err.message.includes('Encrypted')
+                        ? 'Die Datei ist verschlüsselt – bitte als CSV exportieren.'
+                        : 'Fehler: Datei konnte nicht gelesen werden.');
+                } finally {
+                    document.getElementById('loadingIndicator').classList.add('hidden');
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        });
+
+        // ── Upload 2 ──────────────────────────────────────────────────────────────
+        document.getElementById('fileUpload2').addEventListener('change', function (e) {
+            const file = e.target.files[0]; if (!file) return;
+            document.getElementById('fileName2').textContent = file.name;
+            document.getElementById('loadingIndicator2').classList.remove('hidden');
+            hideError2();
+            const reader = new FileReader();
+            reader.onload = ev => {
+                try {
+                    const { json } = parseFileToJson(ev.target.result, file.name);
+                    allAlarmsDataSecond = json.map(row => {
+                        const rawTime = row.alarmTime || row.alarmDate || '';
+                        let timeStr = '';
+                        if (typeof rawTime === 'string') { const m = rawTime.match(/(\d{2}:\d{2}:\d{2})/); if (m) timeStr = m[1]; }
+                        else if (rawTime instanceof Date) timeStr = rawTime.toTimeString().substring(0, 8);
+                        return {
+                            date: formatDateToYYYYMMDD(rawTime), time: timeStr,
+                            severity: parseInt(row.severity || row.Severity || row.alarmSeverity || '0', 10),
+                            message: String(row.message || row.Message || ''),
+                            senderNode: String(row.senderNode || '')
+                        };
+                    }).filter(i => i.date !== null);
+                    document.getElementById('fileName2').textContent = allAlarmsDataSecond.length === 0
+                        ? 'Keine Einträge gefunden'
+                        : `${file.name} (${allAlarmsDataSecond.length} Einträge)`;
+                    if (allAlarmsDataSecond.length === 0) showError2('Keine verwertbaren Einträge in der Detaildatei.');
+                } catch { showError2('Fehler: Detaildatei konnte nicht gelesen werden.'); }
+                finally { document.getElementById('loadingIndicator2').classList.add('hidden'); }
+            };
+            reader.readAsArrayBuffer(file);
+        });
+
+        // ── Schnellauswahl ────────────────────────────────────────────────────────
         function setActivePreset(btn) {
             document.querySelectorAll('.preset-btn').forEach(b => {
-                b.classList.remove('bg-indigo-500', 'text-white');
-                b.classList.add('bg-slate-100', 'text-slate-700');
+                b.classList.remove('bg-indigo-600', 'text-white', 'border-indigo-600');
+                b.classList.add('bg-white', 'text-slate-600', 'border-slate-200');
             });
-            btn.classList.remove('bg-slate-100', 'text-slate-700');
-            btn.classList.add('bg-indigo-500', 'text-white');
+            btn.classList.remove('bg-white', 'text-slate-600', 'border-slate-200');
+            btn.classList.add('bg-indigo-600', 'text-white', 'border-indigo-600');
         }
 
         document.querySelectorAll('.preset-btn').forEach(btn => {
@@ -449,193 +478,166 @@
                 setActivePreset(btn);
                 const days = parseInt(btn.dataset.days, 10);
                 const customRow = document.getElementById('customDateRow');
-
-                if (days === 0) {
-                    customRow.classList.remove('hidden');
-                } else {
-                    customRow.classList.add('hidden');
-                    const todayStr = formatDateToYYYYMMDD(new Date());
-                    const endStr = (dataMaxDate && dataMaxDate < todayStr) ? dataMaxDate : todayStr;
-                    const startStr = subtractDays(endStr, days - 1);
-                    const clampedStart = (dataMinDate && startStr < dataMinDate) ? dataMinDate : startStr;
-                    resetSelection();
-                    analyzeAndRender(clampedStart, endStr);
-                }
+                if (days === 0) { customRow.classList.remove('hidden'); return; }
+                customRow.classList.add('hidden');
+                const todayStr = formatDateToYYYYMMDD(new Date());
+                const endStr = (dataMaxDate && dataMaxDate < todayStr) ? dataMaxDate : todayStr;
+                const startStr = subtractDays(endStr, days - 1);
+                const clamped = (dataMinDate && startStr < dataMinDate) ? dataMinDate : startStr;
+                resetAllSelections();
+                analyzeAndRender(clamped, endStr);
             });
         });
 
         // ── Hauptdatei verarbeiten ────────────────────────────────────────────────
-
-        function processExcelData(data) {
-            let anlage = 'Unbekannt';
+        function processExcelData(data, anlagenNameFromFile) {
+            let anlage = anlagenNameFromFile || null;
             allAlarmsData = data
                 .filter(row => String(row.message || '').includes('8222'))
                 .map(row => {
-                    if (row.senderNode && anlage === 'Unbekannt') anlage = row.senderNode;
-                    return {
-                        date: formatDateToYYYYMMDD(row.alarmDate || row.alarmTime),
-                        senderNode: row.senderNode || ''
-                    };
+                    if (!anlage && row.senderNode) anlage = row.senderNode;
+                    return { date: formatDateToYYYYMMDD(row.alarmDate || row.alarmTime), senderNode: row.senderNode || '' };
                 })
-                .filter(item => item.date !== null);
+                .filter(i => i.date !== null);
 
             if (allAlarmsData.length === 0) {
-                showError('Keine Joystick-Use-Ereignisse (Alarm 8222) in der Datei gefunden oder Datumsformat nicht erkannt.');
+                showError('Keine Joystick-Use-Ereignisse (Alarm 8222) gefunden.');
                 return;
             }
 
-            document.getElementById('anlageName').textContent = anlage;
-
-            const dates = [...new Set(allAlarmsData.map(item => item.date))].sort();
+            document.getElementById('anlageName').textContent = anlage || 'Unbekannt';
+            const dates = [...new Set(allAlarmsData.map(i => i.date))].sort();
             dataMinDate = dates[0];
             dataMaxDate = dates[dates.length - 1];
             const todayStr = formatDateToYYYYMMDD(new Date());
 
-            document.getElementById('totalDateRange').textContent = dataMinDate + ' bis ' + dataMaxDate;
+            document.getElementById('totalDateRange').textContent = fmtDate(dataMinDate) + ' – ' + fmtDate(dataMaxDate);
             document.getElementById('startDate').value = dataMinDate;
             document.getElementById('endDate').value = todayStr;
             document.getElementById('analysisSection').classList.remove('hidden');
 
-            // Standardmäßig "Letzte 30 Tage" aktivieren
             const btn30 = document.querySelector('.preset-btn[data-days="30"]');
             setActivePreset(btn30);
             document.getElementById('customDateRow').classList.add('hidden');
 
             const endStr = (dataMaxDate && dataMaxDate < todayStr) ? dataMaxDate : todayStr;
+            const clampedStart = Math.max; // unused below
             const startStr = subtractDays(endStr, 29);
-            const clampedStart = startStr < dataMinDate ? dataMinDate : startStr;
+            const clamped = startStr < dataMinDate ? dataMinDate : startStr;
 
-            resetSelection();
-            analyzeAndRender(clampedStart, endStr);
+            resetAllSelections();
+            analyzeAndRender(clamped, endStr);
         }
-
-        // ── Aktualisieren-Button ──────────────────────────────────────────────────
 
         document.getElementById('updateBtn').addEventListener('click', () => {
             const start = document.getElementById('startDate').value;
-            const end = document.getElementById('endDate').value;
-            if (!start || !end) { showError('Bitte wähle ein Start- und Enddatum aus.'); return; }
-            if (start > end) { showError('Das Startdatum darf nicht nach dem Enddatum liegen.'); return; }
-            resetSelection();
+            const end   = document.getElementById('endDate').value;
+            if (!start || !end) { showError('Bitte Start- und Enddatum wählen.'); return; }
+            if (start > end)    { showError('Startdatum liegt nach dem Enddatum.'); return; }
+            resetAllSelections();
             analyzeAndRender(start, end);
         });
 
         // ── Analyse & Rendern ─────────────────────────────────────────────────────
-
         function analyzeAndRender(startDate, endDate) {
-            const filteredData = allAlarmsData.filter(item => item.date >= startDate && item.date <= endDate);
-            const dailyCounts = {};
-
+            const filteredData = allAlarmsData.filter(i => i.date >= startDate && i.date <= endDate);
+            const dailyCounts  = {};
             let cur = new Date(startDate + 'T00:00:00');
             const end = new Date(endDate + 'T00:00:00');
-            while (cur <= end) {
-                dailyCounts[formatDateToYYYYMMDD(cur)] = 0;
-                cur.setDate(cur.getDate() + 1);
-            }
-
-            filteredData.forEach(item => {
-                if (dailyCounts[item.date] !== undefined) dailyCounts[item.date]++;
-            });
+            while (cur <= end) { dailyCounts[formatDateToYYYYMMDD(cur)] = 0; cur.setDate(cur.getDate() + 1); }
+            filteredData.forEach(i => { if (dailyCounts[i.date] !== undefined) dailyCounts[i.date]++; });
 
             chartLabels = Object.keys(dailyCounts).sort();
             chartCounts = chartLabels.map(d => dailyCounts[d]);
 
-            const totalAlarms = chartCounts.reduce((s, c) => s + c, 0);
-            const daysCount = chartLabels.length;
-            const average = daysCount > 0 ? totalAlarms / daysCount : 0;
+            const total   = chartCounts.reduce((s, c) => s + c, 0);
+            const days    = chartLabels.length;
+            const average = days > 0 ? total / days : 0;
 
-            document.getElementById('totalAlarmsSelected').textContent = totalAlarms;
+            document.getElementById('totalAlarmsSelected').textContent = total;
             document.getElementById('avgAlarms').textContent = average.toFixed(1).replace('.', ',');
 
-            // Trend-Indikator: erste Hälfte vs. zweite Hälfte
+            // Trend
             const trendEl = document.getElementById('trendIndicator');
-            if (daysCount >= 4) {
-                const mid = Math.floor(daysCount / 2);
-                const firstHalfAvg  = chartCounts.slice(0, mid).reduce((s, c) => s + c, 0) / mid;
-                const secondHalfAvg = chartCounts.slice(mid).reduce((s, c) => s + c, 0) / (daysCount - mid);
-                const trendPct = firstHalfAvg > 0 ? ((secondHalfAvg - firstHalfAvg) / firstHalfAvg) * 100 : 0;
-                const absPct = Math.abs(trendPct).toFixed(0);
-                if (Math.abs(trendPct) < 5) {
-                    trendEl.innerHTML = '<span class="text-slate-500">→ Stabil</span>';
-                } else if (trendPct > 0) {
-                    trendEl.innerHTML = `<span class="text-red-500">&#8593; +${absPct}&thinsp;% Tendenz steigend</span>`;
-                } else {
-                    trendEl.innerHTML = `<span class="text-emerald-600">&#8595; &minus;${absPct}&thinsp;% Tendenz fallend</span>`;
-                }
-            } else {
-                trendEl.innerHTML = '';
-            }
+            if (days >= 4) {
+                const mid  = Math.floor(days / 2);
+                const avg1 = chartCounts.slice(0, mid).reduce((s,c)=>s+c,0) / mid;
+                const avg2 = chartCounts.slice(mid).reduce((s,c)=>s+c,0) / (days - mid);
+                const pct  = avg1 > 0 ? ((avg2 - avg1) / avg1) * 100 : 0;
+                const ap   = Math.abs(pct).toFixed(0);
+                if      (Math.abs(pct) < 5) trendEl.innerHTML = '<span class="text-slate-400">→ Stabil</span>';
+                else if (pct > 0)           trendEl.innerHTML = `<span class="text-red-500">↑ +${ap}% steigend</span>`;
+                else                        trendEl.innerHTML = `<span class="text-emerald-600">↓ −${ap}% fallend</span>`;
+            } else { trendEl.innerHTML = ''; }
 
+            // Peak-Liste
             const peakList = document.getElementById('peakList');
             peakList.innerHTML = '';
-            let peaksFound = false;
+            let any = false;
             chartLabels.forEach((date, i) => {
                 if (chartCounts[i] > average && chartCounts[i] > 0) {
-                    peaksFound = true;
+                    any = true;
                     const li = document.createElement('li');
-                    li.className = 'flex justify-between items-center bg-indigo-50 px-3 py-2 rounded';
-                    li.innerHTML = `<span class="font-medium text-slate-700">${date}</span> <span class="bg-indigo-200 text-indigo-800 py-0.5 px-2 rounded-full text-xs font-medium">${chartCounts[i]} Alarme</span>`;
+                    li.className = 'flex justify-between items-center bg-indigo-50 px-2 py-1.5 rounded text-xs';
+                    li.innerHTML = `<span class="font-medium text-slate-600">${fmtDate(date)}</span><span class="bg-indigo-200 text-indigo-800 px-1.5 py-0.5 rounded-full text-xs">${chartCounts[i]}</span>`;
                     peakList.appendChild(li);
                 }
             });
-            if (!peaksFound) {
-                peakList.innerHTML = "<li class='text-slate-500 italic p-2'>Keine Peaks über dem Durchschnitt im gewählten Zeitraum.</li>";
-            }
+            if (!any) peakList.innerHTML = "<li class='text-slate-400 italic text-xs p-1'>Keine Peaks gefunden.</li>";
 
             renderChart(chartLabels, chartCounts, average);
             initSliders();
         }
 
         // ── Gleitender Durchschnitt ───────────────────────────────────────────────
-
-        function computeMovingAverage(counts, windowSize) {
+        function computeMovingAverage(counts, w) {
             return counts.map((_, i) => {
-                const start = Math.max(0, i - windowSize + 1);
-                const slice = counts.slice(start, i + 1);
-                return slice.reduce((a, b) => a + b, 0) / slice.length;
+                const sl = counts.slice(Math.max(0, i - w + 1), i + 1);
+                return sl.reduce((a, b) => a + b, 0) / sl.length;
             });
         }
 
-        // ── Balkenfarben je Auswahl ───────────────────────────────────────────────
-
+        // ── Balkenfarben ──────────────────────────────────────────────────────────
         function getBarColors(labels) {
-            if (!selectionStart || !selectionEnd) {
-                return labels.map(() => 'rgba(99, 102, 241, 0.8)');
-            }
-            const startIdx = labels.indexOf(selectionStart);
-            const endIdx   = labels.indexOf(selectionEnd);
-            const lo = Math.min(startIdx, endIdx);
-            const hi = Math.max(startIdx, endIdx);
+            const has1 = sel1Start && sel1End;
+            const has2 = sel2Start && sel2End;
+            if (!has1 && !has2) return labels.map(() => 'rgba(79, 70, 229, 0.82)');
+
+            const a1 = has1 ? labels.indexOf(sel1Start) : -1;
+            const b1 = has1 ? labels.indexOf(sel1End)   : -1;
+            const a2 = has2 ? labels.indexOf(sel2Start) : -1;
+            const b2 = has2 ? labels.indexOf(sel2End)   : -1;
+            const lo1 = has1 ? Math.min(a1, b1) : -1, hi1 = has1 ? Math.max(a1, b1) : -1;
+            const lo2 = has2 ? Math.min(a2, b2) : -1, hi2 = has2 ? Math.max(a2, b2) : -1;
+
             return labels.map((_, i) => {
-                if (i >= lo && i <= hi) return 'rgba(251, 146, 60, 0.85)';
-                return 'rgba(99, 102, 241, 0.3)';
+                const in1 = has1 && i >= lo1 && i <= hi1;
+                const in2 = has2 && i >= lo2 && i <= hi2;
+                if (in1 && in2) return 'rgba(139, 92, 246, 0.85)'; // Überlappung = violett
+                if (in1)        return 'rgba(249, 115, 22, 0.85)';  // orange
+                if (in2)        return 'rgba(13, 148, 136, 0.85)';  // teal
+                return 'rgba(79, 70, 229, 0.2)';
             });
         }
 
         // ── Chart rendern ─────────────────────────────────────────────────────────
-
         function renderChart(labels, data, average) {
-            const averageLine = Array(labels.length).fill(average);
-            const movingAvg   = computeMovingAverage(data, 7);
-            const barColors   = getBarColors(labels);
-            const n           = labels.length;
-
-            // Dynamische Balkenbreite & Tick-Limit für große Zeiträume
-            const barThickness  = n > 180 ? 1 : n > 90 ? 2 : undefined;
-            const maxTicksLimit = n > 90 ? Math.ceil(n / 7) : n > 30 ? 15 : undefined;
+            const avgLine  = Array(labels.length).fill(average);
+            const movAvg   = computeMovingAverage(data, 7);
+            const colors   = getBarColors(labels);
+            const n        = labels.length;
+            const barThick = n > 180 ? 1 : n > 90 ? 2 : undefined;
+            const maxTicks = n > 90 ? Math.ceil(n / 7) : n > 30 ? 15 : undefined;
 
             if (myChart) {
                 myChart.data.labels = labels;
                 myChart.data.datasets[0].data = data;
-                myChart.data.datasets[0].backgroundColor = barColors;
-                if (barThickness !== undefined) {
-                    myChart.data.datasets[0].barThickness = barThickness;
-                } else {
-                    delete myChart.data.datasets[0].barThickness;
-                }
-                myChart.data.datasets[1].data = averageLine;
-                myChart.data.datasets[2].data = movingAvg;
-                myChart.options.scales.x.ticks = maxTicksLimit ? { maxTicksLimit } : {};
+                myChart.data.datasets[0].backgroundColor = colors;
+                if (barThick !== undefined) myChart.data.datasets[0].barThickness = barThick;
+                else delete myChart.data.datasets[0].barThickness;
+                myChart.data.datasets[1].data = avgLine;
+                myChart.data.datasets[2].data = movAvg;
+                myChart.options.scales.x.ticks = maxTicks ? { maxTicksLimit: maxTicks } : {};
                 myChart.update();
                 return;
             }
@@ -648,243 +650,230 @@
                     datasets: [
                         {
                             label: 'Joystick Use (Alarm 8222)',
-                            data,
-                            backgroundColor: barColors,
-                            borderColor: 'rgb(79, 70, 229)',
-                            borderWidth: 1,
+                            data, backgroundColor: colors,
+                            borderWidth: 0,
                             borderRadius: 4,
-                            barThickness,
+                            barThick,
+                            categoryPercentage: 0.85,
+                            barPercentage: 0.9,
                             order: 3
                         },
                         {
-                            label: 'Durchschnitt',
-                            data: averageLine,
-                            type: 'line',
-                            borderColor: 'rgba(239, 68, 68, 0.8)',
-                            backgroundColor: 'transparent',
-                            borderWidth: 2,
-                            borderDash: [5, 5],
-                            pointRadius: 0,
-                            order: 1
+                            label: 'Ø gesamt', data: avgLine, type: 'line',
+                            borderColor: 'rgba(239,68,68,0.7)', backgroundColor: 'transparent',
+                            borderWidth: 1.5, borderDash: [5, 5], pointRadius: 0, order: 1
                         },
                         {
-                            label: '7-Tage-Ø',
-                            data: movingAvg,
-                            type: 'line',
-                            borderColor: 'rgba(251, 146, 60, 0.9)',
-                            backgroundColor: 'transparent',
-                            borderWidth: 2,
-                            borderDash: [3, 3],
-                            pointRadius: 0,
-                            order: 2
+                            label: '7-Tage-Ø', data: movAvg, type: 'line',
+                            borderColor: 'rgba(249,115,22,0.8)', backgroundColor: 'transparent',
+                            borderWidth: 1.5, borderDash: [3, 3], pointRadius: 0, order: 2
                         }
                     ]
                 },
                 options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
+                    responsive: true, maintainAspectRatio: false,
                     interaction: { intersect: false, mode: 'index' },
-                    onClick: (e, elements, chart) => {
-                        const xAxis = chart.scales.x;
-                        const rawIndex = xAxis.getValueForPixel(e.x);
-                        const dataIndex = Math.round(rawIndex);
-                        if (dataIndex >= 0 && dataIndex < chart.data.labels.length) {
-                            showDayDetail(chart.data.labels[dataIndex]);
-                        }
+                    onClick: (e, els, chart) => {
+                        const idx = Math.round(chart.scales.x.getValueForPixel(e.x));
+                        if (idx >= 0 && idx < chart.data.labels.length) showDayDetail(chart.data.labels[idx]);
                     },
                     scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: { precision: 0 },
-                            title: { display: true, text: 'Anzahl Alarme' }
-                        },
-                        x: {
-                            title: { display: false },
-                            grid: { display: false },
-                            ticks: maxTicksLimit ? { maxTicksLimit } : {}
-                        }
+                        y: { beginAtZero: true, ticks: { precision: 0 }, title: { display: true, text: 'Alarme' }, grid: { color: 'rgba(0,0,0,0.04)' } },
+                        x: { grid: { display: false }, ticks: maxTicks ? { maxTicksLimit: maxTicks } : {} }
                     },
                     plugins: {
-                        tooltip: {
-                            backgroundColor: 'rgba(15, 23, 42, 0.9)',
-                            padding: 12,
-                            titleFont: { size: 14 },
-                            bodyFont: { size: 13 }
-                        },
+                        tooltip: { backgroundColor: 'rgba(15,23,42,0.9)', padding: 10, titleFont: { size: 13 }, bodyFont: { size: 12 } },
                         legend: { display: false }
                     }
                 }
             });
         }
 
-        // ── Toggle-Buttons für Linien ─────────────────────────────────────────────
-
+        // ── Toggle-Buttons ────────────────────────────────────────────────────────
         document.querySelectorAll('.toggle-line-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 if (!myChart) return;
-                const idx = parseInt(btn.dataset.idx, 10);
-                const ds = myChart.data.datasets[idx];
+                const ds = myChart.data.datasets[parseInt(btn.dataset.idx)];
                 ds.hidden = !ds.hidden;
                 btn.classList.toggle('opacity-40', ds.hidden);
                 myChart.update();
             });
         });
 
-        // ── Dual-Range-Schieber ───────────────────────────────────────────────────
-
+        // ── Schieber initialisieren ───────────────────────────────────────────────
         function initSliders() {
             const n = chartLabels.length;
-            const wrapper = document.getElementById('rangeSliderWrapper');
-            if (n < 2) { wrapper.classList.add('hidden'); return; }
+            const sec = document.getElementById('slidersSection');
+            if (n < 2) { sec.classList.add('hidden'); return; }
 
-            const sliderLeft  = document.getElementById('sliderLeft');
-            const sliderRight = document.getElementById('sliderRight');
-            sliderLeft.max    = n - 1;
-            sliderRight.max   = n - 1;
-            sliderLeft.value  = 0;
-            sliderRight.value = n - 1;
+            ['sliderLeft1','sliderRight1','sliderLeft2','sliderRight2'].forEach(id => {
+                const el = document.getElementById(id);
+                el.max = n - 1;
+            });
+            document.getElementById('sliderLeft1').value  = 0;
+            document.getElementById('sliderRight1').value = n - 1;
+            document.getElementById('sliderLeft2').value  = 0;
+            document.getElementById('sliderRight2').value = n - 1;
 
-            wrapper.classList.remove('hidden');
-            updateSliderUI();
+            sel1Start = sel1End = null;
+            sel2Start = sel2End = null;
+
+            sec.classList.remove('hidden');
+            updateSlider(1);
+            updateSlider(2);
         }
 
-        function updateSliderUI() {
-            const sliderLeft  = document.getElementById('sliderLeft');
-            const sliderRight = document.getElementById('sliderRight');
+        function updateSlider(num) {
+            const loEl = document.getElementById(`sliderLeft${num}`);
+            const hiEl = document.getElementById(`sliderRight${num}`);
+            const fillEl = document.getElementById(`fill${num}`);
+            const lblL = document.getElementById(`lbl${num}L`);
+            const lblR = document.getElementById(`lbl${num}R`);
             const n = chartLabels.length;
             if (n === 0) return;
 
-            const lo = parseInt(sliderLeft.value,  10);
-            const hi = parseInt(sliderRight.value, 10);
+            const lo = parseInt(loEl.value, 10);
+            const hi = parseInt(hiEl.value, 10);
 
-            document.getElementById('sliderLabelLeft').textContent  = chartLabels[lo] || '–';
-            document.getElementById('sliderLabelRight').textContent = chartLabels[hi] || '–';
+            lblL.textContent = fmtDate(chartLabels[lo]) || '–';
+            lblR.textContent = fmtDate(chartLabels[hi]) || '–';
 
-            // Track fill visual
-            const fillEl   = document.getElementById('rangeTrackFill');
-            const pctLeft  = (lo / (n - 1)) * 100;
-            const pctRight = (hi / (n - 1)) * 100;
-            fillEl.style.left  = pctLeft  + '%';
-            fillEl.style.width = (pctRight - pctLeft) + '%';
+            const pL = (lo / (n - 1)) * 100;
+            const pH = (hi / (n - 1)) * 100;
+            fillEl.style.left  = pL + '%';
+            fillEl.style.width = (pH - pL) + '%';
 
-            // Update selection (full range = no selection highlight)
-            if (lo === 0 && hi === n - 1) {
-                selectionStart = null;
-                selectionEnd   = null;
-            } else {
-                selectionStart = chartLabels[lo];
-                selectionEnd   = chartLabels[hi];
-            }
+            // Vollständige Range = kein highlight
+            const full = lo === 0 && hi === n - 1;
+            if (num === 1) { sel1Start = full ? null : chartLabels[lo]; sel1End = full ? null : chartLabels[hi]; }
+            else           { sel2Start = full ? null : chartLabels[lo]; sel2End = full ? null : chartLabels[hi]; }
 
             updateChartColors();
             updateSelectionUI();
         }
 
-        document.getElementById('sliderLeft').addEventListener('input', function () {
-            const sliderRight = document.getElementById('sliderRight');
-            if (parseInt(this.value) > parseInt(sliderRight.value)) this.value = sliderRight.value;
-            updateSliderUI();
+        function wireSlider(num) {
+            const loEl = document.getElementById(`sliderLeft${num}`);
+            const hiEl = document.getElementById(`sliderRight${num}`);
+            loEl.addEventListener('input', function () {
+                if (parseInt(this.value) > parseInt(hiEl.value)) this.value = hiEl.value;
+                updateSlider(num);
+            });
+            hiEl.addEventListener('input', function () {
+                if (parseInt(this.value) < parseInt(loEl.value)) this.value = loEl.value;
+                updateSlider(num);
+            });
+        }
+        wireSlider(1);
+        wireSlider(2);
+
+        document.getElementById('clearSel1Btn').addEventListener('click', () => {
+            const n = chartLabels.length;
+            document.getElementById('sliderLeft1').value  = 0;
+            document.getElementById('sliderRight1').value = n - 1;
+            sel1Start = sel1End = null;
+            updateSlider(1);
+        });
+        document.getElementById('clearSel2Btn').addEventListener('click', () => {
+            const n = chartLabels.length;
+            document.getElementById('sliderLeft2').value  = 0;
+            document.getElementById('sliderRight2').value = n - 1;
+            sel2Start = sel2End = null;
+            updateSlider(2);
         });
 
-        document.getElementById('sliderRight').addEventListener('input', function () {
-            const sliderLeft = document.getElementById('sliderLeft');
-            if (parseInt(this.value) < parseInt(sliderLeft.value)) this.value = sliderLeft.value;
-            updateSliderUI();
-        });
+        function resetAllSelections() {
+            sel1Start = sel1End = sel2Start = sel2End = null;
+            document.getElementById('selectionCard').classList.add('hidden');
+            document.getElementById('detailPanel').classList.add('hidden');
+        }
 
-        // ── Bereichsauswahl-Karte ─────────────────────────────────────────────────
-
+        // ── Chart-Farben aktualisieren ────────────────────────────────────────────
         function updateChartColors() {
             if (!myChart) return;
             myChart.data.datasets[0].backgroundColor = getBarColors(chartLabels);
             myChart.update('none');
         }
 
+        // ── Bereichs-Karte ────────────────────────────────────────────────────────
+        function rangeStats(start, end) {
+            const lo = chartLabels.indexOf(start), hi = chartLabels.indexOf(end);
+            const sl = chartCounts.slice(Math.min(lo,hi), Math.max(lo,hi)+1);
+            const tot = sl.reduce((s,c)=>s+c,0);
+            const d   = sl.length;
+            return { total: tot, days: d, avg: d > 0 ? tot/d : 0 };
+        }
+
         function updateSelectionUI() {
-            const card = document.getElementById('selectionCard');
-            if (!selectionStart || !selectionEnd) {
-                card.classList.add('hidden');
-                return;
-            }
+            const card      = document.getElementById('selectionCard');
+            const single    = document.getElementById('selCardSingle');
+            const compare   = document.getElementById('selCardCompare');
+            const has1 = sel1Start && sel1End;
+            const has2 = sel2Start && sel2End;
 
-            const startIdx = chartLabels.indexOf(selectionStart);
-            const endIdx   = chartLabels.indexOf(selectionEnd);
-            const lo = Math.min(startIdx, endIdx);
-            const hi = Math.max(startIdx, endIdx);
-
-            const selCounts  = chartCounts.slice(lo, hi + 1);
-            const selTotal   = selCounts.reduce((s, c) => s + c, 0);
-            const selDays    = selCounts.length;
-            const selAvg     = selDays > 0 ? selTotal / selDays : 0;
-            const overallTotal = chartCounts.reduce((s, c) => s + c, 0);
-            const overallAvg   = chartLabels.length > 0 ? overallTotal / chartLabels.length : 0;
-
-            document.getElementById('selectionRangeLabel').textContent =
-                chartLabels[lo] + ' bis ' + chartLabels[hi] + ' (' + selDays + ' Tage)';
-            document.getElementById('selectionTotal').textContent = selTotal;
-            document.getElementById('selectionAvg').textContent =
-                'Ø ' + selAvg.toFixed(1).replace('.', ',') + ' / Tag';
-            document.getElementById('overallTotalForSel').textContent = overallTotal;
-            document.getElementById('overallAvgForSel').textContent =
-                'Ø ' + overallAvg.toFixed(1).replace('.', ',') + ' / Tag';
-
+            if (!has1 && !has2) { card.classList.add('hidden'); return; }
             card.classList.remove('hidden');
-        }
 
-        function resetSelection() {
-            selectionStart = null;
-            selectionEnd   = null;
-            const n = chartLabels.length;
-            if (n > 0) {
-                document.getElementById('sliderLeft').value  = 0;
-                document.getElementById('sliderRight').value = n - 1;
-                updateSliderUI();
+            if (has1 && has2) {
+                // Vergleich
+                single.classList.add('hidden');
+                compare.classList.remove('hidden');
+                const s1 = rangeStats(sel1Start, sel1End);
+                const s2 = rangeStats(sel2Start, sel2End);
+                document.getElementById('cmp1Range').textContent = fmtDate(sel1Start) + ' – ' + fmtDate(sel1End);
+                document.getElementById('cmp2Range').textContent = fmtDate(sel2Start) + ' – ' + fmtDate(sel2End);
+                document.getElementById('cmp1Total').textContent = s1.total;
+                document.getElementById('cmp2Total').textContent = s2.total;
+                document.getElementById('cmp1Avg').textContent = s1.avg.toFixed(1).replace('.', ',');
+                document.getElementById('cmp2Avg').textContent = s2.avg.toFixed(1).replace('.', ',');
+                document.getElementById('cmp1Days').textContent = s1.days;
+                document.getElementById('cmp2Days').textContent = s2.days;
+                const diff = s2.avg - s1.avg;
+                const pct  = s1.avg > 0 ? (diff / s1.avg) * 100 : 0;
+                const sign = diff >= 0 ? '+' : '';
+                const diffEl = document.getElementById('cmpDiffValue');
+                diffEl.textContent = `${sign}${diff.toFixed(1).replace('.', ',')} (${sign}${pct.toFixed(0)} %)`;
+                diffEl.className = 'font-semibold ' + (diff > 0 ? 'text-red-500' : diff < 0 ? 'text-emerald-600' : 'text-slate-500');
+            } else {
+                // Einzelner Bereich
+                compare.classList.add('hidden');
+                single.classList.remove('hidden');
+                const isB1 = has1;
+                const st = isB1 ? sel1Start : sel2Start;
+                const en = isB1 ? sel1End   : sel2End;
+                const s  = rangeStats(st, en);
+                document.getElementById('singleCardTitle').textContent = isB1 ? 'Bereich 1' : 'Bereich 2';
+                document.getElementById('singleRangeLabel').textContent = fmtDate(st) + ' – ' + fmtDate(en) + ' (' + s.days + ' Tage)';
+                document.getElementById('singleTotal').textContent = s.total;
+                document.getElementById('singleAvg').textContent = s.avg.toFixed(1).replace('.', ',');
             }
-            updateChartColors();
-            document.getElementById('selectionCard').classList.add('hidden');
-            document.getElementById('detailPanel').classList.add('hidden');
         }
 
-        document.getElementById('resetSelectionBtn').addEventListener('click', resetSelection);
-
-        // ── Severity-3-Detail-Panel ───────────────────────────────────────────────
-
+        // ── Severity-3-Detail ─────────────────────────────────────────────────────
         function showDayDetail(dateStr) {
-            const panel   = document.getElementById('detailPanel');
+            const panel = document.getElementById('detailPanel');
             const content = document.getElementById('detailContent');
-            document.getElementById('detailDate').textContent = dateStr;
-
+            document.getElementById('detailDate').textContent = fmtDate(dateStr);
             if (allAlarmsDataSecond.length === 0) {
-                content.innerHTML = '<p class="text-slate-500 italic p-2">Bitte Detaildatei (oben) hochladen, um Severity-3-Alarme anzuzeigen.</p>';
-                panel.classList.remove('hidden');
-                return;
+                content.innerHTML = '<p class="text-slate-400 italic text-xs p-2">Detaildatei hochladen, um Severity-3-Alarme zu sehen.</p>';
+                panel.classList.remove('hidden'); return;
             }
-
-            const alarms = allAlarmsDataSecond.filter(item => item.date === dateStr && item.severity === 3);
-
+            const alarms = allAlarmsDataSecond.filter(i => i.date === dateStr && i.severity === 3);
             if (alarms.length === 0) {
-                content.innerHTML = '<p class="text-slate-500 italic p-2">Keine Severity-3-Alarme an diesem Tag.</p>';
+                content.innerHTML = '<p class="text-slate-400 italic text-xs p-2">Keine Severity-3-Alarme an diesem Tag.</p>';
             } else {
                 const rows = alarms.map(a =>
                     `<tr class="border-b border-slate-100 hover:bg-slate-50">
-                        <td class="py-1.5 px-2 text-slate-500 whitespace-nowrap">${a.time || '–'}</td>
-                        <td class="py-1.5 px-2 text-slate-600 whitespace-nowrap">${a.senderNode || '–'}</td>
-                        <td class="py-1.5 px-2 text-slate-700">${a.message}</td>
-                    </tr>`
-                ).join('');
-                content.innerHTML = `
-                    <table class="w-full text-sm">
-                        <thead>
-                            <tr class="text-xs text-slate-400 uppercase border-b border-slate-200">
-                                <th class="py-1 px-2 text-left font-medium">Zeit</th>
-                                <th class="py-1 px-2 text-left font-medium">Sender</th>
-                                <th class="py-1 px-2 text-left font-medium">Nachricht</th>
-                            </tr>
-                        </thead>
-                        <tbody>${rows}</tbody>
-                    </table>`;
+                        <td class="py-1.5 px-2 text-slate-400 whitespace-nowrap text-xs">${a.time||'–'}</td>
+                        <td class="py-1.5 px-2 text-slate-500 whitespace-nowrap text-xs">${a.senderNode||'–'}</td>
+                        <td class="py-1.5 px-2 text-slate-700 text-xs">${a.message}</td>
+                    </tr>`).join('');
+                content.innerHTML = `<table class="w-full"><thead><tr class="text-xs text-slate-400 uppercase border-b border-slate-200">
+                    <th class="py-1 px-2 text-left font-medium">Zeit</th>
+                    <th class="py-1 px-2 text-left font-medium">Sender</th>
+                    <th class="py-1 px-2 text-left font-medium">Nachricht</th>
+                    </tr></thead><tbody>${rows}</tbody></table>`;
             }
-
             panel.classList.remove('hidden');
         }
 
@@ -893,20 +882,19 @@
         });
 
         // ── Export ────────────────────────────────────────────────────────────────
-
         document.getElementById('downloadChartBtn').addEventListener('click', () => {
             if (!myChart) return;
-            const canvas  = document.getElementById('alarmChart');
-            const context = canvas.getContext('2d');
-            context.save();
-            context.globalCompositeOperation = 'destination-over';
-            context.fillStyle = 'white';
-            context.fillRect(0, 0, canvas.width, canvas.height);
+            const canvas = document.getElementById('alarmChart');
+            const ctx = canvas.getContext('2d');
+            ctx.save();
+            ctx.globalCompositeOperation = 'destination-over';
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
             const link = document.createElement('a');
-            link.download = 'JoystickUse_8222_Analyse.png';
+            link.download = 'JoystickUse_8222.png';
             link.href = canvas.toDataURL('image/png', 1.0);
             link.click();
-            context.restore();
+            ctx.restore();
         });
 
     })();
