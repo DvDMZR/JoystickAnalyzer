@@ -212,7 +212,18 @@
                         const workbook = XLSX.read(bytes, {type: 'array', cellDates: true});
                         const firstSheetName = workbook.SheetNames[0];
                         const worksheet = workbook.Sheets[firstSheetName];
-                        json = XLSX.utils.sheet_to_json(worksheet);
+
+                        // Echte Header-Zeile suchen (Datei kann Titelzeilen vor den Spaltenköpfen haben)
+                        const rawRows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                        const headerRowIndex = rawRows.findIndex(row =>
+                            row.some(cell => {
+                                const v = String(cell).toLowerCase().trim();
+                                return v === 'alarmtime' || v === 'alarmdate' || v === 'message';
+                            })
+                        );
+                        json = XLSX.utils.sheet_to_json(worksheet, {
+                            range: headerRowIndex >= 0 ? headerRowIndex : 0
+                        });
                     }
                     
                     processExcelData(json);
