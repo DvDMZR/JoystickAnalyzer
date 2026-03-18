@@ -157,8 +157,8 @@
                         <p class="text-xs text-slate-400 mt-1">Durchschnitt</p>
                         <p id="trendIndicator" class="text-sm font-medium mt-2"></p>
                     </div>
-                    <div class="bg-white p-5 rounded-lg border border-slate-200 flex flex-col" style="min-height:160px">
-                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">Peak-Tage</p>
+                    <div class="bg-white p-5 rounded-lg border border-slate-200 flex flex-col" style="height:180px">
+                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">Peak-Tage <span id="peakCount" class="text-slate-300 font-normal"></span></p>
                         <div class="overflow-y-auto flex-grow">
                             <ul id="peakList" class="space-y-1.5 text-sm text-slate-600"></ul>
                         </div>
@@ -564,26 +564,33 @@
                 const avg1 = chartCounts.slice(0, mid).reduce((s,c)=>s+c,0) / mid;
                 const avg2 = chartCounts.slice(mid).reduce((s,c)=>s+c,0) / (days - mid);
                 const pct  = avg1 > 0 ? ((avg2 - avg1) / avg1) * 100 : 0;
-                const ap   = Math.abs(pct).toFixed(0);
-                if      (Math.abs(pct) < 5) trendEl.innerHTML = '<span class="text-slate-400">→ Stabil</span>';
-                else if (pct > 0)           trendEl.innerHTML = `<span class="text-red-500">↑ +${ap}% steigend</span>`;
-                else                        trendEl.innerHTML = `<span class="text-emerald-600">↓ −${ap}% fallend</span>`;
+                const ap      = Math.abs(pct).toFixed(0);
+                const tooltip = `Vergleich: ${fmtDate(chartLabels[0])}–${fmtDate(chartLabels[mid-1])} (Ø ${avg1.toFixed(1).replace('.',',')})\nvs. ${fmtDate(chartLabels[mid])}–${fmtDate(chartLabels[days-1])} (Ø ${avg2.toFixed(1).replace('.',',')})`;
+                if      (Math.abs(pct) < 5) trendEl.innerHTML = `<span class="text-slate-400 cursor-help" title="${tooltip}">→ Stabil</span>`;
+                else if (pct > 0)           trendEl.innerHTML = `<span class="text-red-500 cursor-help" title="${tooltip}">↑ +${ap}% steigend</span>`;
+                else                        trendEl.innerHTML = `<span class="text-emerald-600 cursor-help" title="${tooltip}">↓ −${ap}% fallend</span>`;
             } else { trendEl.innerHTML = ''; }
 
-            // Peak-Liste
+            // Peak-Liste – nur signifikante Peaks (≥ 150% des Ø), max. 10 Einträge
             const peakList = document.getElementById('peakList');
             peakList.innerHTML = '';
-            let any = false;
-            chartLabels.forEach((date, i) => {
-                if (chartCounts[i] > average && chartCounts[i] > 0) {
-                    any = true;
+            const threshold = Math.max(average * 1.5, average + 1);
+            const peaks = chartLabels
+                .map((date, i) => ({ date, count: chartCounts[i] }))
+                .filter(p => p.count > 0 && p.count >= threshold)
+                .sort((a, b) => b.count - a.count)
+                .slice(0, 10);
+            document.getElementById('peakCount').textContent = peaks.length ? `(${peaks.length})` : '';
+            if (peaks.length === 0) {
+                peakList.innerHTML = "<li class='text-slate-400 italic text-xs p-1'>Keine signifikanten Peaks.</li>";
+            } else {
+                peaks.forEach(p => {
                     const li = document.createElement('li');
                     li.className = 'flex justify-between items-center bg-indigo-50 px-2 py-1.5 rounded text-xs';
-                    li.innerHTML = `<span class="font-medium text-slate-600">${fmtDate(date)}</span><span class="bg-indigo-200 text-indigo-800 px-1.5 py-0.5 rounded-full text-xs">${chartCounts[i]}</span>`;
+                    li.innerHTML = `<span class="font-medium text-slate-600">${fmtDate(p.date)}</span><span class="bg-indigo-200 text-indigo-800 px-1.5 py-0.5 rounded-full text-xs">${p.count}</span>`;
                     peakList.appendChild(li);
-                }
-            });
-            if (!any) peakList.innerHTML = "<li class='text-slate-400 italic text-xs p-1'>Keine Peaks gefunden.</li>";
+                });
+            }
 
             renderChart(chartLabels, chartCounts, average);
             initSliders();
@@ -637,7 +644,7 @@
                 else delete myChart.data.datasets[0].barThickness;
                 myChart.data.datasets[1].data = avgLine;
                 myChart.data.datasets[2].data = movAvg;
-                myChart.options.scales.x.ticks = maxTicks ? { maxTicksLimit: maxTicks } : {};
+                myChart.options.scales.x.ticks = { callback: (val, idx) => fmtDate(chartLabels[idx]), ...(maxTicks ? { maxTicksLimit: maxTicks } : {}) };
                 myChart.update();
                 return;
             }
@@ -652,7 +659,7 @@
                             label: 'Joystick Use (Alarm 8222)',
                             data, backgroundColor: colors,
                             borderWidth: 0,
-                            borderRadius: 4,
+                            borderRadius: 0,
                             barThick,
                             categoryPercentage: 0.85,
                             barPercentage: 0.9,
@@ -679,10 +686,10 @@
                     },
                     scales: {
                         y: { beginAtZero: true, ticks: { precision: 0 }, title: { display: true, text: 'Alarme' }, grid: { color: 'rgba(0,0,0,0.04)' } },
-                        x: { grid: { display: false }, ticks: maxTicks ? { maxTicksLimit: maxTicks } : {} }
+                        x: { grid: { display: false }, ticks: { callback: (val, idx) => fmtDate(chartLabels[idx]), ...(maxTicks ? { maxTicksLimit: maxTicks } : {}) } }
                     },
                     plugins: {
-                        tooltip: { backgroundColor: 'rgba(15,23,42,0.9)', padding: 10, titleFont: { size: 13 }, bodyFont: { size: 12 } },
+                        tooltip: { backgroundColor: 'rgba(15,23,42,0.9)', padding: 10, titleFont: { size: 13 }, bodyFont: { size: 12 }, callbacks: { title: (items) => items[0] ? fmtDate(items[0].label) : '' } },
                         legend: { display: false }
                     }
                 }
