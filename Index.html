@@ -117,6 +117,9 @@
     </div>
 
     <script>
+    (function () {
+        'use strict';
+
         // Chart.js Annotation Plugin registrieren
         if (typeof ChartAnnotation !== 'undefined') {
             Chart.register(ChartAnnotation);
@@ -128,6 +131,18 @@
         let activeDates = {};
         let markerCount = 0;
 
+        function showError(msg) {
+            const errorDiv = document.getElementById('errorMessage');
+            if (!errorDiv) return;
+            errorDiv.innerHTML = msg;
+            errorDiv.classList.remove('hidden');
+        }
+
+        function hideError() {
+            const errorDiv = document.getElementById('errorMessage');
+            if (errorDiv) errorDiv.classList.add('hidden');
+        }
+
         // File Upload Listener
         document.getElementById('fileUpload').addEventListener('change', function(e) {
             const file = e.target.files[0];
@@ -137,8 +152,7 @@
             document.getElementById('loadingIndicator').classList.remove('hidden');
             document.getElementById('analysisSection').classList.add('hidden');
             
-            const errorDiv = document.getElementById('errorMessage');
-            if (errorDiv) errorDiv.classList.add('hidden');
+            hideError();
 
             const reader = new FileReader();
 
@@ -149,7 +163,8 @@
                     const bytes = new Uint8Array(arrayBuffer);
                     
                     // Pruefen der Magic Bytes: Faengt eine Datei mit PK (Hex 50 4B) an, ist es ein ZIP/XLSX (auch wenn sie .csv heisst)
-                    const isActuallyXLSX = bytes.length > 2 && bytes[0] === 0x50 && bytes[1] === 0x4B;
+                    const XLSX_MAGIC = [0x50, 0x4B]; // ZIP/XLSX-Signatur ("PK")
+                    const isActuallyXLSX = bytes.length > 2 && bytes[0] === XLSX_MAGIC[0] && bytes[1] === XLSX_MAGIC[1];
                     const isCSV = file.name.toLowerCase().endsWith('.csv') && !isActuallyXLSX;
                     
                     if (isCSV) {
@@ -159,14 +174,35 @@
                         
                         const delimiter = text.indexOf(';') !== -1 ? ';' : ',';
                         const lines = text.split(/\r?\n/);
+
+                        function parseCSVLine(line, delim) {
+                            const fields = [];
+                            let current = '';
+                            let inQuotes = false;
+                            for (let k = 0; k < line.length; k++) {
+                                const ch = line[k];
+                                if (ch === '"') {
+                                    if (inQuotes && line[k + 1] === '"') { current += '"'; k++; }
+                                    else { inQuotes = !inQuotes; }
+                                } else if (ch === delim && !inQuotes) {
+                                    fields.push(current.trim());
+                                    current = '';
+                                } else {
+                                    current += ch;
+                                }
+                            }
+                            fields.push(current.trim());
+                            return fields;
+                        }
+
                         if (lines.length > 0) {
-                            const headers = lines[0].split(delimiter).map(h => h.trim().replace(/^"|"$/g, ''));
-                            for(let i=1; i<lines.length; i++) {
-                                if(!lines[i].trim()) continue;
-                                const values = lines[i].split(delimiter);
+                            const headers = parseCSVLine(lines[0], delimiter);
+                            for (let i = 1; i < lines.length; i++) {
+                                if (!lines[i].trim()) continue;
+                                const values = parseCSVLine(lines[i], delimiter);
                                 let row = {};
-                                for(let j=0; j<headers.length; j++) {
-                                    row[headers[j]] = values[j] ? values[j].trim().replace(/^"|"$/g, '') : "";
+                                for (let j = 0; j < headers.length; j++) {
+                                    row[headers[j]] = values[j] !== undefined ? values[j] : "";
                                 }
                                 json.push(row);
                             }
@@ -243,7 +279,7 @@
             }).filter(item => item.date !== null);
 
             if (allAlarmsData.length === 0) {
-                alert("Keine Alarme mit Code 8222 in der Datei gefunden oder Datumsformat nicht erkannt.");
+                showError("Keine Alarme mit Code 8222 in der Datei gefunden oder Datumsformat nicht erkannt.");
                 return;
             }
 
@@ -274,12 +310,12 @@
             const end = document.getElementById('endDate').value;
             
             if (!start || !end) {
-                alert("Bitte wähle ein Start- und Enddatum aus.");
+                showError("Bitte wähle ein Start- und Enddatum aus.");
                 return;
             }
-            
+
             if (start > end) {
-                alert("Das Startdatum darf nicht nach dem Enddatum liegen.");
+                showError("Das Startdatum darf nicht nach dem Enddatum liegen.");
                 return;
             }
 
@@ -293,8 +329,8 @@
 
             const dailyCounts = {};
             
-            let currentDate = new Date(startDate);
-            const end = new Date(endDate);
+            let currentDate = new Date(startDate + 'T00:00:00');
+            const end = new Date(endDate + 'T00:00:00');
             while (currentDate <= end) {
                 const dateStr = formatDateToYYYYMMDD(currentDate);
                 dailyCounts[dateStr] = 0;
@@ -341,16 +377,20 @@
         }
 
         function renderChart(labels, data, average) {
-            const ctx = document.getElementById('alarmChart').getContext('2d');
-            
-            if (myChart) {
-                myChart.destroy();
-            }
-
             const averageLine = Array(labels.length).fill(average);
 
-            // Chart Konfiguration
-            const chartConfig = {
+            if (myChart) {
+                // Daten in-place aktualisieren – kein Flackern, kein Neuaufbau
+                myChart.data.labels = labels;
+                myChart.data.datasets[0].data = data;
+                myChart.data.datasets[1].data = averageLine;
+                myChart.update();
+                return;
+            }
+
+            // Einmalige Chart-Erstellung
+            const ctx = document.getElementById('alarmChart').getContext('2d');
+            myChart = new Chart(ctx, {
                 type: 'bar',
                 data: {
                     labels: labels,
@@ -421,9 +461,7 @@
                         }
                     }
                 }
-            };
-
-            myChart = new Chart(ctx, chartConfig);
+            });
         }
 
         // --- Marker Funktionen ---
@@ -526,6 +564,7 @@
             context.restore();
         });
 
+    })();
     </script>
 </body>
 </html>
