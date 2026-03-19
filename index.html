@@ -201,6 +201,16 @@
                     <div class="flex flex-wrap justify-between items-center px-4 pt-4 pb-2 gap-2">
                         <h3 class="text-sm font-semibold text-slate-600">Joystick Use – Verlauf (Alarm 8222)</h3>
                         <div class="flex items-center gap-2 flex-wrap">
+                            <label class="inline-flex items-center cursor-pointer gap-1.5 text-xs select-none">
+                                <span class="text-slate-500 font-medium">8235</span>
+                                <div class="relative">
+                                    <input type="checkbox" id="toggle8235" class="sr-only peer">
+                                    <div class="w-9 h-5 bg-slate-200 peer-checked:bg-[#A67B5B] rounded-full transition-colors"></div>
+                                    <div class="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full shadow peer-checked:translate-x-4 transition-transform"></div>
+                                </div>
+                                <span class="text-slate-400">Home POI Lok.</span>
+                            </label>
+                            <span class="text-slate-200">|</span>
                             <button id="toggleAvgBtn" data-idx="1"
                                 class="toggle-line-btn text-xs px-2.5 py-1 rounded-full border border-red-200 text-red-500 bg-red-50 hover:bg-red-100 transition-colors">
                                 ── Ø gesamt
@@ -328,14 +338,23 @@
                         </div>
                     </div>
 
-                    <!-- Severity-3-Detail-Panel -->
+                    <!-- Alarmdetail-Panel -->
                     <div id="detailPanel" class="hidden mx-4 mb-4 pt-3 border-t border-slate-100">
                         <div class="flex justify-between items-center mb-2">
-                            <h4 class="text-sm font-semibold text-slate-600">Severity-3 am <span id="detailDate" class="text-teal-600"></span></h4>
+                            <h4 class="text-sm font-semibold text-slate-600">Alarmdetail am <span id="detailDate" class="text-teal-600"></span></h4>
                             <button id="closeDetailBtn" class="text-slate-300 hover:text-slate-500 text-lg leading-none">&times;</button>
                         </div>
-                        <div id="detailContent" class="overflow-y-auto max-h-48 text-sm"></div>
+                        <div id="detailContent" class="overflow-y-auto max-h-64 text-sm"></div>
                         <div id="detailFrequency" class="hidden mt-3 pt-3 border-t border-slate-100"></div>
+                    </div>
+                </div>
+
+                <!-- Total Alarm Overview -->
+                <div id="totalAlarmOverview" class="hidden mt-5">
+                    <div class="bg-white rounded-xl border border-slate-200 shadow-md p-5">
+                        <h3 class="text-sm font-semibold text-slate-600 uppercase tracking-widest mb-1">Total Alarm Overview</h3>
+                        <p id="overviewDateRange" class="text-xs text-slate-400 mb-3"></p>
+                        <div id="overviewContent" class="overflow-x-auto max-h-96 overflow-y-auto"></div>
                     </div>
                 </div>
 
@@ -349,11 +368,14 @@
 
         let allAlarmsData       = [];
         let allAlarmsDataSecond = [];
+        let allAlarms8235Data   = [];
         let myChart     = null;
         let chartLabels = [];
         let chartCounts = [];
+        let chartCounts8235 = [];
         let dataMinDate = null;
         let dataMaxDate = null;
+        let show8235    = false;
 
         // Bereich 1 (orange) & Bereich 2 (teal)
         let sel1Start = null, sel1End = null;
@@ -508,6 +530,10 @@
                     return { date: formatDateToYYYYMMDD(row.alarmDate || row.alarmTime), senderNode: row.senderNode || '' };
                 })
                 .filter(i => i.date !== null);
+            allAlarms8235Data = data
+                .filter(row => String(row.message || '').includes('8235'))
+                .map(row => ({ date: formatDateToYYYYMMDD(row.alarmDate || row.alarmTime), senderNode: row.senderNode || '' }))
+                .filter(i => i.date !== null);
 
             if (allAlarmsData.length === 0) {
                 showError('Keine Joystick-Use-Ereignisse (Alarm 8222) gefunden.');
@@ -559,11 +585,25 @@
             chartLabels = Object.keys(dailyCounts).sort();
             chartCounts = chartLabels.map(d => dailyCounts[d]);
 
-            const total   = chartCounts.reduce((s, c) => s + c, 0);
-            const days    = chartLabels.length;
-            const average = days > 0 ? total / days : 0;
+            // 8235 tägliche Counts
+            const dailyCounts8235 = {};
+            chartLabels.forEach(d => dailyCounts8235[d] = 0);
+            allAlarms8235Data.filter(i => i.date >= startDate && i.date <= endDate)
+                .forEach(i => { if (dailyCounts8235[i.date] !== undefined) dailyCounts8235[i.date]++; });
+            chartCounts8235 = chartLabels.map(d => dailyCounts8235[d]);
 
-            document.getElementById('totalAlarmsSelected').textContent = total;
+            const total8222 = chartCounts.reduce((s, c) => s + c, 0);
+            const total8235 = chartCounts8235.reduce((s, c) => s + c, 0);
+            const total   = show8235 ? total8222 + total8235 : total8222;
+            const days    = chartLabels.length;
+            const average = days > 0 ? total8222 / days : 0;
+
+            if (show8235 && total8235 > 0) {
+                document.getElementById('totalAlarmsSelected').innerHTML =
+                    `${total} <span class="text-lg text-slate-400">(${total8222} + ${total8235})</span>`;
+            } else {
+                document.getElementById('totalAlarmsSelected').textContent = total8222;
+            }
             document.getElementById('avgAlarms').textContent = average.toFixed(1).replace('.', ',');
 
             // Trend
@@ -585,7 +625,7 @@
             peakList.innerHTML = '';
             const threshold = Math.max(average * 1.5, average + 1);
             const peaks = chartLabels
-                .map((date, i) => ({ date, count: chartCounts[i] }))
+                .map((date, i) => ({ date, count: chartCounts[i] + (show8235 ? chartCounts8235[i] : 0) }))
                 .filter(p => p.count > 0 && p.count >= threshold)
                 .sort((a, b) => b.count - a.count)
                 .slice(0, 10);
@@ -601,8 +641,9 @@
                 });
             }
 
-            renderChart(chartLabels, chartCounts, average);
+            renderChart(chartLabels, chartCounts, average, show8235 ? chartCounts8235 : null);
             initSliders();
+            renderAlarmOverview(startDate, endDate);
         }
 
         // ── Gleitender Durchschnitt ───────────────────────────────────────────────
@@ -636,8 +677,31 @@
             });
         }
 
+        // ── Balkenfarben 8235 ────────────────────────────────────────────────────
+        function getBarColors8235(labels) {
+            const has1 = sel1Start && sel1End;
+            const has2 = sel2Start && sel2End;
+            if (!has1 && !has2) return labels.map(() => 'rgba(166, 123, 91, 0.72)');
+
+            const a1 = has1 ? labels.indexOf(sel1Start) : -1;
+            const b1 = has1 ? labels.indexOf(sel1End)   : -1;
+            const a2 = has2 ? labels.indexOf(sel2Start) : -1;
+            const b2 = has2 ? labels.indexOf(sel2End)   : -1;
+            const lo1 = has1 ? Math.min(a1, b1) : -1, hi1 = has1 ? Math.max(a1, b1) : -1;
+            const lo2 = has2 ? Math.min(a2, b2) : -1, hi2 = has2 ? Math.max(a2, b2) : -1;
+
+            return labels.map((_, i) => {
+                const in1 = has1 && i >= lo1 && i <= hi1;
+                const in2 = has2 && i >= lo2 && i <= hi2;
+                if (in1 && in2) return 'rgba(166, 100, 120, 0.85)';
+                if (in1)        return 'rgba(186, 133, 91, 0.85)';
+                if (in2)        return 'rgba(146, 133, 111, 0.85)';
+                return 'rgba(166, 123, 91, 0.18)';
+            });
+        }
+
         // ── Chart rendern ─────────────────────────────────────────────────────────
-        function renderChart(labels, data, average) {
+        function renderChart(labels, data, average, data8235) {
             const avgLine  = Array(labels.length).fill(average);
             const movAvg   = computeMovingAverage(data, 7);
             const colors   = getBarColors(labels);
@@ -649,10 +713,35 @@
                 myChart.data.labels = labels;
                 myChart.data.datasets[0].data = data;
                 myChart.data.datasets[0].backgroundColor = colors;
+                myChart.data.datasets[0].categoryPercentage = data8235 ? 0.92 : 0.85;
+                myChart.data.datasets[0].barPercentage = data8235 ? 0.95 : 0.9;
                 if (barThick !== undefined) myChart.data.datasets[0].barThickness = barThick;
                 else delete myChart.data.datasets[0].barThickness;
                 myChart.data.datasets[1].data = avgLine;
                 myChart.data.datasets[2].data = movAvg;
+                // 8235 Dataset (index 3)
+                if (myChart.data.datasets.length > 3) {
+                    if (data8235) {
+                        myChart.data.datasets[3].data = data8235;
+                        myChart.data.datasets[3].backgroundColor = getBarColors8235(labels);
+                        myChart.data.datasets[3].hidden = false;
+                        if (barThick !== undefined) myChart.data.datasets[3].barThickness = barThick;
+                        else delete myChart.data.datasets[3].barThickness;
+                    } else {
+                        myChart.data.datasets[3].data = labels.map(() => 0);
+                        myChart.data.datasets[3].hidden = true;
+                    }
+                } else if (data8235) {
+                    myChart.data.datasets.push({
+                        label: 'Home POI Lok. (Alarm 8235)',
+                        data: data8235,
+                        backgroundColor: getBarColors8235(labels),
+                        borderWidth: 0, borderRadius: 0,
+                        barThickness: barThick,
+                        categoryPercentage: 0.92, barPercentage: 0.95,
+                        order: 4
+                    });
+                }
                 myChart.options.scales.x.ticks = { callback: (val, idx) => fmtDate(chartLabels[idx]), ...(maxTicks ? { maxTicksLimit: maxTicks } : {}) };
                 myChart.update();
                 return;
@@ -669,9 +758,9 @@
                             data, backgroundColor: colors,
                             borderWidth: 0,
                             borderRadius: 0,
-                            barThick,
-                            categoryPercentage: 0.85,
-                            barPercentage: 0.9,
+                            barThickness: barThick,
+                            categoryPercentage: data8235 ? 0.92 : 0.85,
+                            barPercentage: data8235 ? 0.95 : 0.9,
                             order: 3
                         },
                         {
@@ -683,6 +772,16 @@
                             label: '7-Tage-Ø', data: movAvg, type: 'line',
                             borderColor: 'rgba(249,115,22,0.8)', backgroundColor: 'transparent',
                             borderWidth: 1.5, borderDash: [3, 3], pointRadius: 0, order: 2
+                        },
+                        {
+                            label: 'Home POI Lok. (Alarm 8235)',
+                            data: data8235 || labels.map(() => 0),
+                            backgroundColor: getBarColors8235(labels),
+                            borderWidth: 0, borderRadius: 0,
+                            barThickness: barThick,
+                            categoryPercentage: 0.92, barPercentage: 0.95,
+                            order: 4,
+                            hidden: !data8235
                         }
                     ]
                 },
@@ -714,6 +813,14 @@
                 btn.classList.toggle('opacity-40', ds.hidden);
                 myChart.update();
             });
+        });
+
+        // ── 8235 Toggle ─────────────────────────────────────────────────────────
+        document.getElementById('toggle8235').addEventListener('change', function() {
+            show8235 = this.checked;
+            if (chartLabels.length > 0) {
+                analyzeAndRender(chartLabels[0], chartLabels[chartLabels.length - 1]);
+            }
         });
 
         // ── Schieber initialisieren ───────────────────────────────────────────────
@@ -808,6 +915,9 @@
         function updateChartColors() {
             if (!myChart) return;
             myChart.data.datasets[0].backgroundColor = getBarColors(chartLabels);
+            if (myChart.data.datasets.length > 3 && !myChart.data.datasets[3].hidden) {
+                myChart.data.datasets[3].backgroundColor = getBarColors8235(chartLabels);
+            }
             myChart.update('none');
         }
 
@@ -865,7 +975,7 @@
             }
         }
 
-        // ── Severity-3-Detail ─────────────────────────────────────────────────────
+        // ── Alarmdetail (Severity 3, 8222, 8235) ─────────────────────────────────
         function showDayDetail(dateStr) {
             const panel    = document.getElementById('detailPanel');
             const content  = document.getElementById('detailContent');
@@ -873,25 +983,52 @@
             document.getElementById('detailDate').textContent = fmtDate(dateStr);
             freqDiv.classList.add('hidden');
             freqDiv.innerHTML = '';
-            const alarms = allAlarmsDataSecond.filter(i => i.date === dateStr && i.severity === 3);
-            if (alarms.length === 0) {
-                content.innerHTML = '<p class="text-slate-400 italic text-xs p-2">Keine Severity-3-Alarme an diesem Tag.</p>';
+
+            const dayAlarms = allAlarmsDataSecond.filter(i => i.date === dateStr);
+            const alarms8222 = dayAlarms.filter(a => a.message.includes('8222'));
+            const alarms8235 = dayAlarms.filter(a => a.message.includes('8235'));
+            const seen8222 = new Set(alarms8222.map(a => `${a.time}|${a.message}`));
+            const seen8235 = new Set(alarms8235.map(a => `${a.time}|${a.message}`));
+            const sev3Only = dayAlarms.filter(a => a.severity === 3 && !seen8222.has(`${a.time}|${a.message}`) && !seen8235.has(`${a.time}|${a.message}`));
+
+            const allGrouped = [...sev3Only, ...alarms8222, ...alarms8235];
+            if (allGrouped.length === 0) {
+                content.innerHTML = '<p class="text-slate-400 italic text-xs p-2">Keine relevanten Alarme an diesem Tag.</p>';
             } else {
-                const rows = alarms.map(a =>
-                    `<tr class="border-b border-slate-100 hover:bg-slate-50">
-                        <td class="py-1.5 px-2 text-slate-400 whitespace-nowrap text-xs">${a.time||'–'}</td>
-                        <td class="py-1.5 px-2 text-slate-500 whitespace-nowrap text-xs">${a.senderNode||'–'}</td>
-                        <td class="py-1.5 px-2 text-slate-700 text-xs">${a.message}</td>
-                    </tr>`).join('');
-                content.innerHTML = `<table class="w-full"><thead><tr class="text-xs text-slate-400 uppercase border-b border-slate-200">
+                function buildRows(alarms, bgStyle) {
+                    return alarms.map(a =>
+                        `<tr class="border-b border-slate-100" style="${bgStyle}">
+                            <td class="py-1.5 px-2 text-slate-400 whitespace-nowrap text-xs">${a.time||'–'}</td>
+                            <td class="py-1.5 px-2 text-slate-500 whitespace-nowrap text-xs">${a.senderNode||'–'}</td>
+                            <td class="py-1.5 px-2 text-slate-700 text-xs">${a.message}</td>
+                        </tr>`).join('');
+                }
+                function groupHeader(label, bgColor, textColor) {
+                    return `<tr><td colspan="3" class="py-1.5 px-2 text-xs font-semibold uppercase tracking-wide" style="background:${bgColor};color:${textColor};">${label}</td></tr>`;
+                }
+                const thead = `<thead><tr class="text-xs text-slate-400 uppercase border-b border-slate-200">
                     <th class="py-1 px-2 text-left font-medium">Zeit</th>
                     <th class="py-1 px-2 text-left font-medium">Sender</th>
                     <th class="py-1 px-2 text-left font-medium">Nachricht</th>
-                    </tr></thead><tbody>${rows}</tbody></table>`;
+                    </tr></thead>`;
+                let tbody = '';
+                if (sev3Only.length > 0) {
+                    tbody += groupHeader(`Severity 3 (${sev3Only.length})`, 'rgba(100,116,139,0.12)', '#475569');
+                    tbody += buildRows(sev3Only, 'background:rgba(100,116,139,0.04)');
+                }
+                if (alarms8222.length > 0) {
+                    tbody += groupHeader(`Alarm 8222 – Joystick Use (${alarms8222.length})`, 'rgba(124,131,99,0.25)', '#4a4f38');
+                    tbody += buildRows(alarms8222, 'background:rgba(124,131,99,0.10)');
+                }
+                if (alarms8235.length > 0) {
+                    tbody += groupHeader(`Alarm 8235 – Home POI Lok. (${alarms8235.length})`, 'rgba(166,123,91,0.25)', '#6b4c33');
+                    tbody += buildRows(alarms8235, 'background:rgba(166,123,91,0.10)');
+                }
+                content.innerHTML = `<table class="w-full">${thead}<tbody>${tbody}</tbody></table>`;
 
-                // ── Häufigste Alarme ───────────────────────────────────────────
+                // ── Häufigste Alarme (alle Gruppen) ──────────────────────────
                 const freq = {};
-                alarms.forEach(a => { if (a.message) freq[a.message] = (freq[a.message] || 0) + 1; });
+                allGrouped.forEach(a => { if (a.message) freq[a.message] = (freq[a.message] || 0) + 1; });
                 const topAlarms = Object.entries(freq).sort((a, b) => b[1] - a[1]).slice(0, 5);
                 if (topAlarms.length >= 2) {
                     const rankClass = (i) => i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : 'rank-default';
@@ -913,6 +1050,57 @@
         document.getElementById('closeDetailBtn').addEventListener('click', () => {
             document.getElementById('detailPanel').classList.add('hidden');
         });
+
+        // ── Total Alarm Overview ────────────────────────────────────────────────
+        function renderAlarmOverview(startDate, endDate) {
+            const section = document.getElementById('totalAlarmOverview');
+            const content = document.getElementById('overviewContent');
+            const allInRange = allAlarmsDataSecond.filter(i => i.date >= startDate && i.date <= endDate);
+            if (allInRange.length === 0) { section.classList.add('hidden'); return; }
+
+            const freq = {}, firstSeen = {}, lastSeen = {};
+            allInRange.forEach(a => {
+                const msg = a.message || '(kein Text)';
+                freq[msg] = (freq[msg] || 0) + 1;
+                const ts = a.date + ' ' + (a.time || '00:00:00');
+                if (!firstSeen[msg] || ts < firstSeen[msg]) firstSeen[msg] = ts;
+                if (!lastSeen[msg]  || ts > lastSeen[msg])  lastSeen[msg]  = ts;
+            });
+
+            const totalCount = allInRange.length;
+            const sorted = Object.entries(freq).sort((a, b) => b[1] - a[1]);
+
+            const rows = sorted.map(([msg, cnt], i) => {
+                const pct = ((cnt / totalCount) * 100).toFixed(1);
+                const first = firstSeen[msg] ? firstSeen[msg].substring(0, 10) : '–';
+                const last  = lastSeen[msg]  ? lastSeen[msg].substring(0, 10)  : '–';
+                const is8222 = msg.includes('8222');
+                const is8235 = msg.includes('8235');
+                const rowBg = is8222 ? 'background:rgba(124,131,99,0.08)' : is8235 ? 'background:rgba(166,123,91,0.08)' : '';
+                return `<tr class="border-b border-slate-100 hover:bg-slate-50" style="${rowBg}">
+                    <td class="py-1.5 px-2 text-xs text-slate-400 text-center">${i + 1}</td>
+                    <td class="py-1.5 px-2 text-xs text-slate-700">${msg}</td>
+                    <td class="py-1.5 px-2 text-xs text-slate-600 text-right tabular-nums font-medium">${cnt}</td>
+                    <td class="py-1.5 px-2 text-xs text-slate-400 text-right tabular-nums">${pct}%</td>
+                    <td class="py-1.5 px-2 text-xs text-slate-400 whitespace-nowrap">${fmtDate(first)}</td>
+                    <td class="py-1.5 px-2 text-xs text-slate-400 whitespace-nowrap">${fmtDate(last)}</td>
+                </tr>`;
+            }).join('');
+
+            content.innerHTML = `<table class="w-full">
+                <thead><tr class="text-xs text-slate-400 uppercase border-b border-slate-200 sticky top-0 bg-white">
+                    <th class="py-1 px-2 text-center font-medium w-10">#</th>
+                    <th class="py-1 px-2 text-left font-medium">Alarm</th>
+                    <th class="py-1 px-2 text-right font-medium">Anzahl</th>
+                    <th class="py-1 px-2 text-right font-medium">Anteil</th>
+                    <th class="py-1 px-2 text-left font-medium">Erstes</th>
+                    <th class="py-1 px-2 text-left font-medium">Letztes</th>
+                </tr></thead><tbody>${rows}</tbody></table>`;
+
+            document.getElementById('overviewDateRange').textContent =
+                fmtDate(startDate) + ' – ' + fmtDate(endDate) + ' (' + totalCount + ' Alarme gesamt)';
+            section.classList.remove('hidden');
+        }
 
         // ── Export ────────────────────────────────────────────────────────────────
         document.getElementById('downloadChartBtn').addEventListener('click', () => {
