@@ -348,7 +348,7 @@
         'use strict';
 
         let allAlarmsData       = [];
-        let allAlarmsDataSecond = [];
+        let allAlarmsRaw = [];
         let myChart     = null;
         let chartLabels = [];
         let chartCounts = [];
@@ -362,6 +362,15 @@
         // ── Fehler-Helfer ─────────────────────────────────────────────────────────
         function showError(msg)  { const e = document.getElementById('errorMessage');  e.innerHTML = msg; e.classList.remove('hidden'); }
         function hideError()     { document.getElementById('errorMessage').classList.add('hidden'); }
+
+        // ── HTML-Escaping ─────────────────────────────────────────────────────────
+        function escHtml(str) {
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
 
         // ── Datum-Helfer ──────────────────────────────────────────────────────────
         function formatDateToYYYYMMDD(dateInput) {
@@ -489,7 +498,7 @@
         // ── Hauptdatei verarbeiten ────────────────────────────────────────────────
         function processExcelData(data, anlagenNameFromFile) {
             let anlage = anlagenNameFromFile || null;
-            allAlarmsDataSecond = data.map(row => {
+            allAlarmsRaw = data.map(row => {
                 const rawTime = row.alarmTime || row.alarmDate || '';
                 let timeStr = '';
                 if (typeof rawTime === 'string') { const m = rawTime.match(/(\d{2}:\d{2}:\d{2})/); if (m) timeStr = m[1]; }
@@ -530,7 +539,6 @@
             document.getElementById('customDateRow').classList.add('hidden');
 
             const endStr = (dataMaxDate && dataMaxDate < todayStr) ? dataMaxDate : todayStr;
-            const clampedStart = Math.max; // unused below
             const startStr = subtractDays(endStr, 29);
             const clamped = startStr < dataMinDate ? dataMinDate : startStr;
 
@@ -690,7 +698,7 @@
                     responsive: true, maintainAspectRatio: false,
                     interaction: { intersect: false, mode: 'index' },
                     onClick: (e, els, chart) => {
-                        const idx = Math.round(chart.scales.x.getValueForPixel(e.x));
+                        const idx = els.length > 0 ? els[0].index : Math.round(chart.scales.x.getValueForPixel(e.x));
                         if (idx >= 0 && idx < chart.data.labels.length) showDayDetail(chart.data.labels[idx]);
                     },
                     scales: {
@@ -873,15 +881,15 @@
             document.getElementById('detailDate').textContent = fmtDate(dateStr);
             freqDiv.classList.add('hidden');
             freqDiv.innerHTML = '';
-            const alarms = allAlarmsDataSecond.filter(i => i.date === dateStr && i.severity === 3);
+            const alarms = allAlarmsRaw.filter(i => i.date === dateStr && i.severity === 3);
             if (alarms.length === 0) {
                 content.innerHTML = '<p class="text-slate-400 italic text-xs p-2">Keine Severity-3-Alarme an diesem Tag.</p>';
             } else {
                 const rows = alarms.map(a =>
                     `<tr class="border-b border-slate-100 hover:bg-slate-50">
-                        <td class="py-1.5 px-2 text-slate-400 whitespace-nowrap text-xs">${a.time||'–'}</td>
-                        <td class="py-1.5 px-2 text-slate-500 whitespace-nowrap text-xs">${a.senderNode||'–'}</td>
-                        <td class="py-1.5 px-2 text-slate-700 text-xs">${a.message}</td>
+                        <td class="py-1.5 px-2 text-slate-400 whitespace-nowrap text-xs">${escHtml(a.time||'–')}</td>
+                        <td class="py-1.5 px-2 text-slate-500 whitespace-nowrap text-xs">${escHtml(a.senderNode||'–')}</td>
+                        <td class="py-1.5 px-2 text-slate-700 text-xs">${escHtml(a.message)}</td>
                     </tr>`).join('');
                 content.innerHTML = `<table class="w-full"><thead><tr class="text-xs text-slate-400 uppercase border-b border-slate-200">
                     <th class="py-1 px-2 text-left font-medium">Zeit</th>
@@ -899,7 +907,7 @@
                     const items = topAlarms.map(([ msg, cnt ], i) =>
                         `<li class="flex items-start gap-2 px-2 py-1.5 rounded border text-xs ${rankClass(i)}">
                             <span class="shrink-0 font-bold text-sm leading-tight">${nums[i]}</span>
-                            <span class="flex-1 leading-snug">${msg}</span>
+                            <span class="flex-1 leading-snug">${escHtml(msg)}</span>
                             <span class="shrink-0 font-bold tabular-nums">${cnt}×</span>
                         </li>`
                     ).join('');
