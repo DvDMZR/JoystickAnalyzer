@@ -7,6 +7,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <style>
         /* Gemeinsame Range-Slider Basis */
         .rs-wrapper {
@@ -219,9 +221,17 @@
                                 class="toggle-line-btn text-xs px-2.5 py-1 rounded-full border border-orange-200 text-orange-500 bg-orange-50 hover:bg-orange-100 transition-colors">
                                 ·· 7-Tage-Ø
                             </button>
+                            <button id="toggleSev3Btn" data-idx="4"
+                                class="toggle-line-btn opacity-40 text-xs px-2.5 py-1 rounded-full border border-slate-300 text-slate-500 bg-slate-50 hover:bg-slate-100 transition-colors">
+                                ── Severity 3
+                            </button>
                             <button id="downloadChartBtn" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 py-1 px-3 rounded-full flex items-center gap-1.5 border border-slate-200 transition-colors">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
                                 Export
+                            </button>
+                            <button id="downloadPdfBtn" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 py-1 px-3 rounded-full flex items-center gap-1.5 border border-slate-200 transition-colors">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                                PDF
                             </button>
                         </div>
                     </div>
@@ -373,6 +383,7 @@
         let chartLabels = [];
         let chartCounts = [];
         let chartCounts8235 = [];
+        let chartCountsSev3 = [];
         let dataMinDate = null;
         let dataMaxDate = null;
         let show8235    = false;
@@ -592,6 +603,13 @@
                 .forEach(i => { if (dailyCounts8235[i.date] !== undefined) dailyCounts8235[i.date]++; });
             chartCounts8235 = chartLabels.map(d => dailyCounts8235[d]);
 
+            // Severity-3 tägliche Counts
+            const dailyCountsSev3 = {};
+            chartLabels.forEach(d => dailyCountsSev3[d] = 0);
+            allAlarmsDataSecond.filter(i => i.date >= startDate && i.date <= endDate && i.severity === 3)
+                .forEach(i => { if (dailyCountsSev3[i.date] !== undefined) dailyCountsSev3[i.date]++; });
+            chartCountsSev3 = chartLabels.map(d => dailyCountsSev3[d]);
+
             const total8222 = chartCounts.reduce((s, c) => s + c, 0);
             const total8235 = chartCounts8235.reduce((s, c) => s + c, 0);
             const total   = show8235 ? total8222 + total8235 : total8222;
@@ -641,7 +659,7 @@
                 });
             }
 
-            renderChart(chartLabels, chartCounts, average, show8235 ? chartCounts8235 : null);
+            renderChart(chartLabels, chartCounts, average, show8235 ? chartCounts8235 : null, chartCountsSev3);
             initSliders();
             renderAlarmOverview(startDate, endDate);
         }
@@ -701,7 +719,7 @@
         }
 
         // ── Chart rendern ─────────────────────────────────────────────────────────
-        function renderChart(labels, data, average, data8235) {
+        function renderChart(labels, data, average, data8235, dataSev3) {
             const avgLine  = Array(labels.length).fill(average);
             const movAvg   = computeMovingAverage(data, 7);
             const colors   = getBarColors(labels);
@@ -731,16 +749,10 @@
                         myChart.data.datasets[3].data = labels.map(() => 0);
                         myChart.data.datasets[3].hidden = true;
                     }
-                } else if (data8235) {
-                    myChart.data.datasets.push({
-                        label: 'Home POI Lok. (Alarm 8235)',
-                        data: data8235,
-                        backgroundColor: getBarColors8235(labels),
-                        borderWidth: 0, borderRadius: 0,
-                        barThickness: barThick,
-                        categoryPercentage: 0.92, barPercentage: 0.95,
-                        order: 4
-                    });
+                }
+                // Severity-3 Linie (index 4)
+                if (myChart.data.datasets.length > 4 && dataSev3) {
+                    myChart.data.datasets[4].data = dataSev3;
                 }
                 myChart.options.scales.x.ticks = { callback: (val, idx) => fmtDate(chartLabels[idx]), ...(maxTicks ? { maxTicksLimit: maxTicks } : {}) };
                 myChart.update();
@@ -782,6 +794,13 @@
                             categoryPercentage: 0.92, barPercentage: 0.95,
                             order: 4,
                             hidden: !data8235
+                        },
+                        {
+                            label: 'Severity 3', data: dataSev3 || labels.map(() => 0), type: 'line',
+                            borderColor: 'rgba(100, 116, 139, 0.7)', backgroundColor: 'transparent',
+                            borderWidth: 1.5, pointRadius: 0, order: 0,
+                            tension: 0.3,
+                            hidden: true
                         }
                     ]
                 },
@@ -1116,6 +1135,82 @@
             link.href = canvas.toDataURL('image/png', 1.0);
             link.click();
             ctx.restore();
+        });
+
+        // ── PDF-Export ──────────────────────────────────────────────────────────
+        document.getElementById('downloadPdfBtn').addEventListener('click', async () => {
+            const section = document.getElementById('analysisSection');
+            if (!section || section.classList.contains('hidden')) return;
+
+            const btn = document.getElementById('downloadPdfBtn');
+            const origText = btn.innerHTML;
+            btn.innerHTML = '<span class="animate-pulse">Erstelle PDF…</span>';
+            btn.disabled = true;
+
+            try {
+                const canvas = await html2canvas(section, {
+                    scale: 2,
+                    useCORS: true,
+                    backgroundColor: '#f8fafc',
+                    logging: false,
+                    windowWidth: 1200
+                });
+
+                const imgData = canvas.toDataURL('image/png');
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+                const pageW = pdf.internal.pageSize.getWidth();
+                const pageH = pdf.internal.pageSize.getHeight();
+                const margin = 10;
+                const usableW = pageW - margin * 2;
+                const usableH = pageH - margin * 2;
+
+                // Header
+                pdf.setFontSize(8);
+                pdf.setTextColor(120);
+                const anlage = document.getElementById('anlageName').textContent || '';
+                const zeitraum = document.getElementById('totalDateRange').textContent || '';
+                pdf.text(`Joystick Use – Alarm 8222  |  ${anlage}  |  ${zeitraum}`, margin, 7);
+
+                const imgW = usableW;
+                const imgH = (canvas.height / canvas.width) * imgW;
+
+                // Bild auf Seiten verteilen
+                let yOffset = 0;
+                let pageNum = 0;
+                while (yOffset < imgH) {
+                    if (pageNum > 0) {
+                        pdf.addPage();
+                        pdf.setFontSize(8);
+                        pdf.setTextColor(120);
+                        pdf.text(`Joystick Use – Alarm 8222  |  ${anlage}  |  Seite ${pageNum + 1}`, margin, 7);
+                    }
+                    const sliceH = Math.min(usableH, imgH - yOffset);
+                    const sourceY = (yOffset / imgH) * canvas.height;
+                    const sourceH = (sliceH / imgH) * canvas.height;
+
+                    // Slice aus dem Canvas ausschneiden
+                    const sliceCanvas = document.createElement('canvas');
+                    sliceCanvas.width = canvas.width;
+                    sliceCanvas.height = sourceH;
+                    const sliceCtx = sliceCanvas.getContext('2d');
+                    sliceCtx.drawImage(canvas, 0, sourceY, canvas.width, sourceH, 0, 0, canvas.width, sourceH);
+
+                    pdf.addImage(sliceCanvas.toDataURL('image/png'), 'PNG', margin, margin, imgW, sliceH);
+                    yOffset += sliceH;
+                    pageNum++;
+                }
+
+                const dateStr = new Date().toISOString().slice(0, 10);
+                pdf.save(`JoystickUse_8222_${anlage.replace(/[^a-zA-Z0-9]/g, '_')}_${dateStr}.pdf`);
+            } catch (err) {
+                console.error('PDF export failed:', err);
+                showError('PDF-Export fehlgeschlagen: ' + err.message);
+            } finally {
+                btn.innerHTML = origText;
+                btn.disabled = false;
+            }
         });
 
     })();
