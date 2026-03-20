@@ -203,7 +203,7 @@
                     <div class="flex flex-wrap justify-between items-center px-4 pt-4 pb-2 gap-2">
                         <div class="flex items-center gap-2">
                             <h3 id="chartTitle" class="text-sm font-semibold text-slate-600">Joystick Use – Verlauf (Alarm 8222)</h3>
-                            <select id="alarmSelect" class="text-xs border border-slate-200 rounded-md px-2 py-1 bg-white text-slate-600 focus:border-indigo-300 focus:outline-none cursor-pointer">
+                            <select id="alarmSelect" class="text-xs border border-slate-200 rounded-md px-2 py-1 bg-white text-slate-600 focus:border-indigo-300 focus:outline-none cursor-pointer min-w-[340px] max-w-[520px]">
                                 <option value="8222">8222 (Default)</option>
                             </select>
                         </div>
@@ -416,6 +416,15 @@
         function showError(msg)  { const e = document.getElementById('errorMessage');  e.innerHTML = msg; e.classList.remove('hidden'); }
         function hideError()     { document.getElementById('errorMessage').classList.add('hidden'); }
 
+        // ── Alarm-Helfer ─────────────────────────────────────────────────────────
+        function extractAlarmNumber(msg) {
+            const m = String(msg).match(/^(\d+)/);
+            return m ? m[1] : null;
+        }
+        function cleanAlarmLabel(msg) {
+            return String(msg).replace(/\s*[\(\{][^)\}]*[\)\}]/g, '').trim();
+        }
+
         // ── Datum-Helfer ──────────────────────────────────────────────────────────
         function formatDateToYYYYMMDD(dateInput) {
             if (!dateInput) return null;
@@ -566,15 +575,21 @@
                 .map(row => ({ date: formatDateToYYYYMMDD(row.alarmDate || row.alarmTime), senderNode: row.senderNode || '' }))
                 .filter(i => i.date !== null);
 
-            // Unique Alarm-Messages für Dropdown extrahieren
-            availableAlarms = [...new Set(allAlarmsDataSecond.map(a => a.message).filter(m => m && m.trim()))].sort();
+            // Alarm-Nummern deduplizieren für Dropdown
+            const alarmMap = new Map();
+            allAlarmsDataSecond.forEach(a => {
+                const num = extractAlarmNumber(a.message);
+                if (!num) return;
+                if (!alarmMap.has(num)) alarmMap.set(num, cleanAlarmLabel(a.message));
+            });
+            availableAlarms = [...alarmMap.entries()].sort((a, b) => a[0].localeCompare(b[0], undefined, { numeric: true }));
             const sel = document.getElementById('alarmSelect');
             sel.innerHTML = '<option value="8222">8222 (Default)</option>';
-            availableAlarms.forEach(msg => {
-                if (msg.includes('8222')) return; // default already listed
+            availableAlarms.forEach(([num, label]) => {
+                if (num === '8222') return;
                 const opt = document.createElement('option');
-                opt.value = msg;
-                opt.textContent = msg.length > 60 ? msg.substring(0, 57) + '…' : msg;
+                opt.value = num;
+                opt.textContent = label;
                 sel.appendChild(opt);
             });
             selectedAlarmFilter = '8222';
@@ -625,7 +640,7 @@
                 filteredData = allAlarmsData.filter(i => i.date >= startDate && i.date <= endDate);
             } else {
                 filteredData = allAlarmsDataSecond
-                    .filter(i => i.date >= startDate && i.date <= endDate && i.message === selectedAlarmFilter)
+                    .filter(i => i.date >= startDate && i.date <= endDate && extractAlarmNumber(i.message) === selectedAlarmFilter)
                     .map(i => ({ date: i.date }));
             }
             const dailyCounts  = {};
@@ -807,7 +822,7 @@
                     labels,
                     datasets: [
                         {
-                            label: selectedAlarmFilter === '8222' ? 'Joystick Use (Alarm 8222)' : selectedAlarmFilter,
+                            label: selectedAlarmFilter === '8222' ? 'Joystick Use (Alarm 8222)' : (document.getElementById('alarmSelect').options[document.getElementById('alarmSelect').selectedIndex]?.textContent || selectedAlarmFilter),
                             data, backgroundColor: colors,
                             borderWidth: 0,
                             borderRadius: 0,
@@ -890,8 +905,8 @@
             if (selectedAlarmFilter === '8222') {
                 document.getElementById('chartTitle').textContent = 'Joystick Use – Verlauf (Alarm 8222)';
             } else {
-                const short = selectedAlarmFilter.length > 40 ? selectedAlarmFilter.substring(0, 37) + '…' : selectedAlarmFilter;
-                document.getElementById('chartTitle').textContent = 'Verlauf – ' + short;
+                const optText = this.options[this.selectedIndex].textContent;
+                document.getElementById('chartTitle').textContent = 'Verlauf – ' + optText;
             }
             // Chart mit neuem Filter neu aufbauen — Chart muss zerstört werden da sich der Hauptdatensatz ändert
             if (myChart) { myChart.destroy(); myChart = null; }
