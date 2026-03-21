@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Joystick Use (Alarm 8222) Analyse Dashboard</title>
+    <title>AFS Performance Analyzer v1.1</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -113,7 +113,49 @@
             <div class="flex items-center gap-4 py-4">
                 <!-- GEA Logo text + title -->
                 <div class="flex flex-col gap-0.5">
-                    <h1 style="color:#ffffff; font-size:1.05rem; font-weight:600; letter-spacing:0.01em; margin-top:2px;">Joystick Use – Alarm 8222</h1>
+                    <h1 style="color:#ffffff; font-size:1.05rem; font-weight:600; letter-spacing:0.01em; margin-top:2px;">AFS Performance Analyzer <span style="font-weight:400;font-size:0.75rem;opacity:0.6;">v1.1</span></h1>
+                </div>
+                <button id="openTutorialBtn" class="ml-auto w-7 h-7 rounded-full bg-white/20 hover:bg-white/30 text-white text-sm font-bold flex items-center justify-center transition-colors" title="Hilfe & Tutorial">?</button>
+            </div>
+        </div>
+
+        <!-- Tutorial-Modal -->
+        <div id="tutorialModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4" style="background:rgba(0,0,0,0.4)">
+            <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto p-6 relative">
+                <button id="closeTutorialBtn" class="absolute top-3 right-3 text-slate-400 hover:text-slate-600 text-xl leading-none">&times;</button>
+                <h2 class="text-lg font-bold text-slate-800 mb-4">AFS Performance Analyzer – Hilfe</h2>
+
+                <div class="space-y-4 text-sm text-slate-600 leading-relaxed">
+                    <div>
+                        <h3 class="font-semibold text-slate-700 mb-1">Was ist der Joystick Use Alarm (8222)?</h3>
+                        <p>Der Alarm 8222 (Joystick Use) ist ein wichtiger <strong>Indikator f&uuml;r Systemausf&auml;lle</strong> im AFS. Jedes Mal, wenn das System in den manuellen Joystick-Modus wechselt, deutet dies auf eine Unterbrechung des automatischen Betriebs hin. Die H&auml;ufigkeit dieses Alarms korreliert direkt mit der Systemverf&uuml;gbarkeit.</p>
+                    </div>
+
+                    <div>
+                        <h3 class="font-semibold text-slate-700 mb-1">Was kann ich analysieren?</h3>
+                        <ul class="list-disc ml-5 space-y-1">
+                            <li><strong>H&auml;ufigkeitsmuster:</strong> Tagesverlauf der Alarme erkennen &ndash; wann treten Probleme geh&auml;uft auf?</li>
+                            <li><strong>Trends:</strong> Steigt oder sinkt die Alarmrate? Der Trend-Indikator vergleicht die erste und zweite H&auml;lfte des Zeitraums.</li>
+                            <li><strong>Peak-Tage:</strong> Tage mit &uuml;berdurchschnittlich vielen Alarmen (&ge; 150% des Durchschnitts) werden hervorgehoben.</li>
+                            <li><strong>Bereichsvergleiche:</strong> Mit den Schiebereglern zwei Zeitr&auml;ume ausw&auml;hlen und statistisch vergleichen.</li>
+                            <li><strong>Alarm-Korrelation:</strong> &Uuml;ber den &quot;+&quot; Button weitere Alarme als Overlay-Balken hinzuschalten, um Zusammenh&auml;nge zu erkennen.</li>
+                            <li><strong>Severity-3-Analyse:</strong> Die Severity-3-Kurve zeigt die t&auml;gliche Anzahl kritischer Alarme als Verlaufslinie.</li>
+                            <li><strong>Alarm-Dropdown:</strong> Jeden beliebigen Alarm aus der Datei als Hauptalarm im Chart analysieren.</li>
+                        </ul>
+                    </div>
+
+                    <div>
+                        <h3 class="font-semibold text-slate-700 mb-1">Bedienelemente</h3>
+                        <ul class="list-disc ml-5 space-y-1">
+                            <li><strong>Alarm-Dropdown:</strong> W&auml;hlt den Hauptalarm f&uuml;r den Chart (Standard: 8222).</li>
+                            <li><strong>&quot;+&quot; Button:</strong> F&uuml;gt weitere Alarme als zus&auml;tzliche Balken im Chart hinzu (max. 5).</li>
+                            <li><strong>&Oslash; gesamt / 7-Tage-&Oslash;:</strong> Durchschnittslinien ein-/ausblenden.</li>
+                            <li><strong>Severity 3:</strong> Kurve der t&auml;glichen Severity-3-Alarme ein-/ausblenden.</li>
+                            <li><strong>Bereichsregler:</strong> Zwei Zeitbereiche w&auml;hlen und vergleichen inkl. Top-Alarme.</li>
+                            <li><strong>Balken anklicken:</strong> Zeigt Detail-Liste aller Severity-3, 8222 und 8235 Alarme des Tages.</li>
+                            <li><strong>Export / PDF:</strong> Chart als PNG oder gesamte Analyse als PDF herunterladen.</li>
+                        </ul>
+                    </div>
                 </div>
             </div>
         </div>
@@ -125,7 +167,7 @@
                 <div class="flex items-center gap-3 px-4 py-2.5 border border-slate-200 rounded-lg bg-slate-50">
                     <label for="fileUpload" class="flex items-center gap-1.5 cursor-pointer text-sm font-medium text-indigo-600 hover:text-indigo-800 whitespace-nowrap shrink-0">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-                        Hauptdatei (Alarm 8222)
+                        Alarmliste hochladen
                     </label>
                     <input type="file" id="fileUpload" accept=".xlsx, .xls, .csv" class="hidden">
                     <span class="text-slate-300 text-sm">|</span>
@@ -134,6 +176,29 @@
                 </div>
                 <div id="errorMessage" class="hidden p-3 bg-red-50 text-red-700 rounded-lg text-sm border border-red-200"></div>
 
+            </div>
+
+            <!-- Anleitung vor Upload -->
+            <div id="instructionPanel" class="mb-6 bg-slate-50 border border-slate-200 rounded-xl p-5">
+                <p class="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-3">So geht's</p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div class="flex items-start gap-3 bg-white rounded-lg border border-slate-100 p-3">
+                        <span class="shrink-0 w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs font-bold">1</span>
+                        <p class="text-sm text-slate-600">Anlage in <strong>Farmview</strong> w&auml;hlen</p>
+                    </div>
+                    <div class="flex items-start gap-3 bg-white rounded-lg border border-slate-100 p-3">
+                        <span class="shrink-0 w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs font-bold">2</span>
+                        <p class="text-sm text-slate-600">Alarme &ouml;ffnen, im <strong>'Fehlerursprung'</strong> AFS eingeben</p>
+                    </div>
+                    <div class="flex items-start gap-3 bg-white rounded-lg border border-slate-100 p-3">
+                        <span class="shrink-0 w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs font-bold">3</span>
+                        <p class="text-sm text-slate-600">Alarme <strong>exportieren</strong> &ndash; Zeitraum <strong>'all'</strong> w&auml;hlen</p>
+                    </div>
+                    <div class="flex items-start gap-3 bg-white rounded-lg border border-slate-100 p-3">
+                        <span class="shrink-0 w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs font-bold">4</span>
+                        <p class="text-sm text-slate-600">Datei hier <strong>hochladen</strong></p>
+                    </div>
+                </div>
             </div>
 
             <!-- Analyse-Bereich -->
@@ -206,18 +271,14 @@
                             <select id="alarmSelect" class="text-xs border border-slate-200 rounded-md px-2 py-1 bg-white text-slate-600 focus:border-indigo-300 focus:outline-none cursor-pointer min-w-[340px] max-w-[520px]">
                                 <option value="8222">8222 (Default)</option>
                             </select>
+                            <button id="addAlarmBtn" class="relative text-xs w-6 h-6 rounded-full border border-dashed border-slate-300 text-slate-400 hover:border-indigo-400 hover:text-indigo-500 hover:bg-indigo-50 transition-colors flex items-center justify-center" title="Alarm-Overlay hinzufügen">+</button>
+                            <!-- Alarm-Auswahl Popover -->
+                            <div id="addAlarmPopover" class="hidden absolute z-40 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg p-2 w-72 max-h-60 overflow-y-auto">
+                                <p class="text-xs text-slate-400 mb-1.5 px-1">Alarm als Overlay hinzufügen:</p>
+                                <ul id="addAlarmList" class="space-y-0.5"></ul>
+                            </div>
                         </div>
                         <div class="flex items-center gap-2 flex-wrap">
-                            <label class="inline-flex items-center cursor-pointer gap-1.5 text-xs select-none">
-                                <span class="text-slate-500 font-medium">8235</span>
-                                <div class="relative">
-                                    <input type="checkbox" id="toggle8235" class="sr-only peer">
-                                    <div class="w-9 h-5 bg-slate-200 peer-checked:bg-[#A67B5B] rounded-full transition-colors"></div>
-                                    <div class="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full shadow peer-checked:translate-x-4 transition-transform"></div>
-                                </div>
-                                <span class="text-slate-400">Home POI Lok.</span>
-                            </label>
-                            <span class="text-slate-200">|</span>
                             <button id="toggleAvgBtn" data-idx="1"
                                 class="toggle-line-btn text-xs px-2.5 py-1 rounded-full border border-red-200 text-red-500 bg-red-50 hover:bg-red-100 transition-colors">
                                 ── Ø gesamt
@@ -226,10 +287,11 @@
                                 class="toggle-line-btn text-xs px-2.5 py-1 rounded-full border border-orange-200 text-orange-500 bg-orange-50 hover:bg-orange-100 transition-colors">
                                 ·· 7-Tage-Ø
                             </button>
-                            <button id="toggleSev3Btn" data-idx="4"
-                                class="toggle-line-btn opacity-40 text-xs px-2.5 py-1 rounded-full border border-slate-300 text-slate-500 bg-slate-50 hover:bg-slate-100 transition-colors">
+                            <button id="toggleSev3Btn" data-idx="3"
+                                class="toggle-line-btn text-xs px-2.5 py-1 rounded-full border border-slate-300 text-slate-500 bg-slate-50 hover:bg-slate-100 transition-colors">
                                 ── Severity 3
                             </button>
+                            <span class="flex-grow"></span>
                             <button id="downloadChartBtn" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 py-1 px-3 rounded-full flex items-center gap-1.5 border border-slate-200 transition-colors">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
                                 Export
@@ -240,6 +302,8 @@
                             </button>
                         </div>
                     </div>
+                    <!-- Zusatz-Alarm Chips -->
+                    <div id="additionalAlarmChips" class="hidden flex flex-wrap gap-1.5 px-4 pb-2"></div>
 
                     <!-- Canvas -->
                     <div class="relative h-64 md:h-80 w-full px-2">
@@ -396,17 +460,24 @@
 
         let allAlarmsData       = [];
         let allAlarmsDataSecond = [];
-        let allAlarms8235Data   = [];
         let myChart     = null;
         let chartLabels = [];
         let chartCounts = [];
-        let chartCounts8235 = [];
         let chartCountsSev3 = [];
         let dataMinDate = null;
         let dataMaxDate = null;
-        let show8235    = false;
         let selectedAlarmFilter = '8222'; // default
         let availableAlarms = [];         // unique alarm messages from file
+
+        // Multi-Alarm Overlay System
+        let additionalAlarms = []; // Array of { alarmNum, label, color, counts }
+        const additionalAlarmColors = [
+            'rgba(166, 123, 91, 0.72)',   // Terracotta
+            'rgba(124, 131, 99, 0.72)',   // Salbei
+            'rgba(139, 110, 140, 0.72)',  // Mauve
+            'rgba(100, 130, 140, 0.72)',  // Steel Blue
+            'rgba(160, 130, 80, 0.72)',   // Sand
+        ];
 
         // Bereich 1 (orange) & Bereich 2 (teal)
         let sel1Start = null, sel1End = null;
@@ -570,10 +641,6 @@
                     return { date: formatDateToYYYYMMDD(row.alarmDate || row.alarmTime), senderNode: row.senderNode || '' };
                 })
                 .filter(i => i.date !== null);
-            allAlarms8235Data = data
-                .filter(row => String(row.message || '').includes('8235'))
-                .map(row => ({ date: formatDateToYYYYMMDD(row.alarmDate || row.alarmTime), senderNode: row.senderNode || '' }))
-                .filter(i => i.date !== null);
 
             // Alarm-Nummern deduplizieren für Dropdown
             const alarmMap = new Map();
@@ -652,12 +719,14 @@
             chartLabels = Object.keys(dailyCounts).sort();
             chartCounts = chartLabels.map(d => dailyCounts[d]);
 
-            // 8235 tägliche Counts
-            const dailyCounts8235 = {};
-            chartLabels.forEach(d => dailyCounts8235[d] = 0);
-            allAlarms8235Data.filter(i => i.date >= startDate && i.date <= endDate)
-                .forEach(i => { if (dailyCounts8235[i.date] !== undefined) dailyCounts8235[i.date]++; });
-            chartCounts8235 = chartLabels.map(d => dailyCounts8235[d]);
+            // Zusatz-Alarm Counts berechnen
+            additionalAlarms.forEach(aa => {
+                const dc = {};
+                chartLabels.forEach(d => dc[d] = 0);
+                allAlarmsDataSecond.filter(i => i.date >= startDate && i.date <= endDate && extractAlarmNumber(i.message) === aa.alarmNum)
+                    .forEach(i => { if (dc[i.date] !== undefined) dc[i.date]++; });
+                aa.counts = chartLabels.map(d => dc[d]);
+            });
 
             // Severity-3 tägliche Counts
             const dailyCountsSev3 = {};
@@ -666,18 +735,11 @@
                 .forEach(i => { if (dailyCountsSev3[i.date] !== undefined) dailyCountsSev3[i.date]++; });
             chartCountsSev3 = chartLabels.map(d => dailyCountsSev3[d]);
 
-            const total8222 = chartCounts.reduce((s, c) => s + c, 0);
-            const total8235 = chartCounts8235.reduce((s, c) => s + c, 0);
-            const total   = show8235 ? total8222 + total8235 : total8222;
+            const totalMain = chartCounts.reduce((s, c) => s + c, 0);
             const days    = chartLabels.length;
-            const average = days > 0 ? total8222 / days : 0;
+            const average = days > 0 ? totalMain / days : 0;
 
-            if (show8235 && total8235 > 0) {
-                document.getElementById('totalAlarmsSelected').innerHTML =
-                    `${total} <span class="text-lg text-slate-400">(${total8222} + ${total8235})</span>`;
-            } else {
-                document.getElementById('totalAlarmsSelected').textContent = total8222;
-            }
+            document.getElementById('totalAlarmsSelected').textContent = totalMain;
             document.getElementById('avgAlarms').textContent = average.toFixed(1).replace('.', ',');
 
             // Trend
@@ -699,7 +761,7 @@
             peakList.innerHTML = '';
             const threshold = Math.max(average * 1.5, average + 1);
             const peaks = chartLabels
-                .map((date, i) => ({ date, count: chartCounts[i] + (show8235 ? chartCounts8235[i] : 0) }))
+                .map((date, i) => ({ date, count: chartCounts[i] }))
                 .filter(p => p.count > 0 && p.count >= threshold)
                 .sort((a, b) => b.count - a.count)
                 .slice(0, 10);
@@ -715,7 +777,7 @@
                 });
             }
 
-            renderChart(chartLabels, chartCounts, average, show8235 ? chartCounts8235 : null, chartCountsSev3);
+            renderChart(chartLabels, chartCounts, average, chartCountsSev3);
             initSliders();
             renderAlarmOverview(startDate, endDate);
         }
@@ -751,35 +813,32 @@
             });
         }
 
-        // ── Balkenfarben 8235 ────────────────────────────────────────────────────
-        function getBarColors8235(labels) {
+        // ── Balkenfarben für Zusatz-Alarme ──────────────────────────────────────
+        function getAdditionalBarColors(labels, baseColor) {
             const has1 = sel1Start && sel1End;
             const has2 = sel2Start && sel2End;
-            if (!has1 && !has2) return labels.map(() => 'rgba(166, 123, 91, 0.72)');
-
-            const a1 = has1 ? labels.indexOf(sel1Start) : -1;
-            const b1 = has1 ? labels.indexOf(sel1End)   : -1;
-            const a2 = has2 ? labels.indexOf(sel2Start) : -1;
-            const b2 = has2 ? labels.indexOf(sel2End)   : -1;
-            const lo1 = has1 ? Math.min(a1, b1) : -1, hi1 = has1 ? Math.max(a1, b1) : -1;
-            const lo2 = has2 ? Math.min(a2, b2) : -1, hi2 = has2 ? Math.max(a2, b2) : -1;
-
+            if (!has1 && !has2) return labels.map(() => baseColor);
+            // Parse base color to get dimmed version
+            const dimmed = baseColor.replace(/[\d.]+\)$/, '0.18)');
             return labels.map((_, i) => {
-                const in1 = has1 && i >= lo1 && i <= hi1;
-                const in2 = has2 && i >= lo2 && i <= hi2;
-                if (in1 && in2) return 'rgba(166, 100, 120, 0.85)';
-                if (in1)        return 'rgba(186, 133, 91, 0.85)';
-                if (in2)        return 'rgba(146, 133, 111, 0.85)';
-                return 'rgba(166, 123, 91, 0.18)';
+                const idx1Lo = has1 ? Math.min(labels.indexOf(sel1Start), labels.indexOf(sel1End)) : -1;
+                const idx1Hi = has1 ? Math.max(labels.indexOf(sel1Start), labels.indexOf(sel1End)) : -1;
+                const idx2Lo = has2 ? Math.min(labels.indexOf(sel2Start), labels.indexOf(sel2End)) : -1;
+                const idx2Hi = has2 ? Math.max(labels.indexOf(sel2Start), labels.indexOf(sel2End)) : -1;
+                const in1 = has1 && i >= idx1Lo && i <= idx1Hi;
+                const in2 = has2 && i >= idx2Lo && i <= idx2Hi;
+                if (in1 || in2) return baseColor;
+                return dimmed;
             });
         }
 
         // ── Chart rendern ─────────────────────────────────────────────────────────
-        function renderChart(labels, data, average, data8235, dataSev3) {
+        function renderChart(labels, data, average, dataSev3) {
             const avgLine  = Array(labels.length).fill(average);
             const movAvg   = computeMovingAverage(data, 7);
             const colors   = getBarColors(labels);
             const n        = labels.length;
+            const hasExtra = additionalAlarms.length > 0;
             const barThick = n > 180 ? 1 : n > 90 ? 2 : undefined;
             const maxTicks = n > 90 ? Math.ceil(n / 7) : n > 30 ? 15 : undefined;
 
@@ -787,79 +846,80 @@
                 myChart.data.labels = labels;
                 myChart.data.datasets[0].data = data;
                 myChart.data.datasets[0].backgroundColor = colors;
-                myChart.data.datasets[0].categoryPercentage = data8235 ? 0.92 : 0.85;
-                myChart.data.datasets[0].barPercentage = data8235 ? 0.95 : 0.9;
+                myChart.data.datasets[0].categoryPercentage = hasExtra ? 0.92 : 0.85;
+                myChart.data.datasets[0].barPercentage = hasExtra ? 0.95 : 0.9;
                 if (barThick !== undefined) myChart.data.datasets[0].barThickness = barThick;
                 else delete myChart.data.datasets[0].barThickness;
                 myChart.data.datasets[1].data = avgLine;
                 myChart.data.datasets[2].data = movAvg;
-                // 8235 Dataset (index 3)
-                if (myChart.data.datasets.length > 3) {
-                    if (data8235) {
-                        myChart.data.datasets[3].data = data8235;
-                        myChart.data.datasets[3].backgroundColor = getBarColors8235(labels);
-                        myChart.data.datasets[3].hidden = false;
-                        if (barThick !== undefined) myChart.data.datasets[3].barThickness = barThick;
-                        else delete myChart.data.datasets[3].barThickness;
-                    } else {
-                        myChart.data.datasets[3].data = labels.map(() => 0);
-                        myChart.data.datasets[3].hidden = true;
-                    }
+                // Severity-3 Linie (index 3)
+                if (myChart.data.datasets.length > 3 && dataSev3) {
+                    myChart.data.datasets[3].data = dataSev3;
                 }
-                // Severity-3 Linie (index 4)
-                if (myChart.data.datasets.length > 4 && dataSev3) {
-                    myChart.data.datasets[4].data = dataSev3;
-                }
+                // Zusatz-Alarm Datasets (index 4+) — rebuild
+                myChart.data.datasets.length = 4; // trim old additional datasets
+                additionalAlarms.forEach((aa, idx) => {
+                    myChart.data.datasets.push({
+                        label: aa.label,
+                        data: aa.counts || labels.map(() => 0),
+                        backgroundColor: getAdditionalBarColors(labels, aa.color),
+                        borderWidth: 0, borderRadius: 0,
+                        barThickness: barThick,
+                        categoryPercentage: 0.92, barPercentage: 0.95,
+                        order: 4 + idx
+                    });
+                });
                 myChart.options.scales.x.ticks = { callback: (val, idx) => fmtDate(chartLabels[idx]), ...(maxTicks ? { maxTicksLimit: maxTicks } : {}) };
                 myChart.update();
                 return;
             }
 
+            const baseDatasets = [
+                {
+                    label: selectedAlarmFilter === '8222' ? 'Joystick Use (Alarm 8222)' : (document.getElementById('alarmSelect').options[document.getElementById('alarmSelect').selectedIndex]?.textContent || selectedAlarmFilter),
+                    data, backgroundColor: colors,
+                    borderWidth: 0, borderRadius: 0,
+                    barThickness: barThick,
+                    categoryPercentage: hasExtra ? 0.92 : 0.85,
+                    barPercentage: hasExtra ? 0.95 : 0.9,
+                    order: 3
+                },
+                {
+                    label: 'Ø gesamt', data: avgLine, type: 'line',
+                    borderColor: 'rgba(239,68,68,0.7)', backgroundColor: 'transparent',
+                    borderWidth: 1.5, borderDash: [5, 5], pointRadius: 0, order: 1
+                },
+                {
+                    label: '7-Tage-Ø', data: movAvg, type: 'line',
+                    borderColor: 'rgba(249,115,22,0.8)', backgroundColor: 'transparent',
+                    borderWidth: 1.5, borderDash: [3, 3], pointRadius: 0, order: 2
+                },
+                {
+                    label: 'Severity 3', data: dataSev3 || labels.map(() => 0), type: 'line',
+                    borderColor: 'rgba(100, 116, 139, 0.7)', backgroundColor: 'transparent',
+                    borderWidth: 1.5, pointRadius: 0, order: 0,
+                    tension: 0.3,
+                    hidden: false
+                }
+            ];
+
+            // Zusatz-Alarm Datasets hinzufügen
+            additionalAlarms.forEach((aa, idx) => {
+                baseDatasets.push({
+                    label: aa.label,
+                    data: aa.counts || labels.map(() => 0),
+                    backgroundColor: getAdditionalBarColors(labels, aa.color),
+                    borderWidth: 0, borderRadius: 0,
+                    barThickness: barThick,
+                    categoryPercentage: 0.92, barPercentage: 0.95,
+                    order: 4 + idx
+                });
+            });
+
             const ctx = document.getElementById('alarmChart').getContext('2d');
             myChart = new Chart(ctx, {
                 type: 'bar',
-                data: {
-                    labels,
-                    datasets: [
-                        {
-                            label: selectedAlarmFilter === '8222' ? 'Joystick Use (Alarm 8222)' : (document.getElementById('alarmSelect').options[document.getElementById('alarmSelect').selectedIndex]?.textContent || selectedAlarmFilter),
-                            data, backgroundColor: colors,
-                            borderWidth: 0,
-                            borderRadius: 0,
-                            barThickness: barThick,
-                            categoryPercentage: data8235 ? 0.92 : 0.85,
-                            barPercentage: data8235 ? 0.95 : 0.9,
-                            order: 3
-                        },
-                        {
-                            label: 'Ø gesamt', data: avgLine, type: 'line',
-                            borderColor: 'rgba(239,68,68,0.7)', backgroundColor: 'transparent',
-                            borderWidth: 1.5, borderDash: [5, 5], pointRadius: 0, order: 1
-                        },
-                        {
-                            label: '7-Tage-Ø', data: movAvg, type: 'line',
-                            borderColor: 'rgba(249,115,22,0.8)', backgroundColor: 'transparent',
-                            borderWidth: 1.5, borderDash: [3, 3], pointRadius: 0, order: 2
-                        },
-                        {
-                            label: 'Home POI Lok. (Alarm 8235)',
-                            data: data8235 || labels.map(() => 0),
-                            backgroundColor: getBarColors8235(labels),
-                            borderWidth: 0, borderRadius: 0,
-                            barThickness: barThick,
-                            categoryPercentage: 0.92, barPercentage: 0.95,
-                            order: 4,
-                            hidden: !data8235
-                        },
-                        {
-                            label: 'Severity 3', data: dataSev3 || labels.map(() => 0), type: 'line',
-                            borderColor: 'rgba(100, 116, 139, 0.7)', backgroundColor: 'transparent',
-                            borderWidth: 1.5, pointRadius: 0, order: 0,
-                            tension: 0.3,
-                            hidden: true
-                        }
-                    ]
-                },
+                data: { labels, datasets: baseDatasets },
                 options: {
                     responsive: true, maintainAspectRatio: false,
                     interaction: { intersect: false, mode: 'index' },
@@ -890,13 +950,78 @@
             });
         });
 
-        // ── 8235 Toggle ─────────────────────────────────────────────────────────
-        document.getElementById('toggle8235').addEventListener('change', function() {
-            show8235 = this.checked;
-            if (chartLabels.length > 0) {
-                analyzeAndRender(chartLabels[0], chartLabels[chartLabels.length - 1]);
+        // ── Multi-Alarm "+" System ──────────────────────────────────────────────
+        const addAlarmBtn = document.getElementById('addAlarmBtn');
+        const addAlarmPopover = document.getElementById('addAlarmPopover');
+        const addAlarmList = document.getElementById('addAlarmList');
+        const chipsContainer = document.getElementById('additionalAlarmChips');
+
+        addAlarmBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (addAlarmPopover.classList.contains('hidden')) {
+                // Popover positionieren
+                const rect = addAlarmBtn.getBoundingClientRect();
+                addAlarmPopover.style.top = (rect.bottom + 4) + 'px';
+                addAlarmPopover.style.left = Math.max(8, rect.left - 120) + 'px';
+                addAlarmPopover.style.position = 'fixed';
+                // Liste befüllen
+                addAlarmList.innerHTML = '';
+                availableAlarms.forEach(([num, label]) => {
+                    if (num === selectedAlarmFilter) return; // Hauptalarm nicht als Overlay
+                    const already = additionalAlarms.some(a => a.alarmNum === num);
+                    const li = document.createElement('li');
+                    li.className = 'flex items-center justify-between px-2 py-1.5 rounded text-xs cursor-pointer hover:bg-slate-50 ' + (already ? 'opacity-40 pointer-events-none' : '');
+                    li.innerHTML = `<span class="truncate">${label}</span>` + (already ? '<span class="text-slate-400 text-[10px]">aktiv</span>' : '');
+                    if (!already) {
+                        li.addEventListener('click', () => {
+                            if (additionalAlarms.length >= 5) return;
+                            const color = additionalAlarmColors[additionalAlarms.length % additionalAlarmColors.length];
+                            additionalAlarms.push({ alarmNum: num, label: label, color: color, counts: [] });
+                            addAlarmPopover.classList.add('hidden');
+                            renderAdditionalAlarmChips();
+                            if (myChart) { myChart.destroy(); myChart = null; }
+                            if (chartLabels.length > 0) analyzeAndRender(chartLabels[0], chartLabels[chartLabels.length - 1]);
+                        });
+                    }
+                    addAlarmList.appendChild(li);
+                });
+                addAlarmPopover.classList.remove('hidden');
+            } else {
+                addAlarmPopover.classList.add('hidden');
             }
         });
+
+        document.addEventListener('click', (e) => {
+            if (!addAlarmPopover.contains(e.target) && e.target !== addAlarmBtn) {
+                addAlarmPopover.classList.add('hidden');
+            }
+        });
+
+        function renderAdditionalAlarmChips() {
+            chipsContainer.innerHTML = '';
+            if (additionalAlarms.length === 0) {
+                chipsContainer.classList.add('hidden');
+                return;
+            }
+            chipsContainer.classList.remove('hidden');
+            additionalAlarms.forEach((aa, idx) => {
+                const chip = document.createElement('span');
+                chip.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border';
+                chip.style.borderColor = aa.color;
+                chip.style.color = aa.color.replace(/[\d.]+\)$/, '1)');
+                chip.style.backgroundColor = aa.color.replace(/[\d.]+\)$/, '0.08)');
+                chip.innerHTML = `<span class="w-2 h-2 rounded-full" style="background:${aa.color}"></span>${aa.alarmNum}: ${aa.label.replace(/^\d+:\s*/, '')} <button class="ml-0.5 hover:text-red-500 font-bold" data-rm="${idx}">×</button>`;
+                chip.querySelector('button').addEventListener('click', () => {
+                    additionalAlarms.splice(idx, 1);
+                    // Farben neu zuweisen
+                    additionalAlarms.forEach((a, i) => a.color = additionalAlarmColors[i % additionalAlarmColors.length]);
+                    renderAdditionalAlarmChips();
+                    if (myChart) { myChart.destroy(); myChart = null; }
+                    if (chartLabels.length > 0) analyzeAndRender(chartLabels[0], chartLabels[chartLabels.length - 1]);
+                });
+                chipsContainer.appendChild(chip);
+            });
+        }
 
         // ── Alarm-Dropdown ──────────────────────────────────────────────────────
         document.getElementById('alarmSelect').addEventListener('change', function() {
@@ -908,7 +1033,10 @@
                 const optText = this.options[this.selectedIndex].textContent;
                 document.getElementById('chartTitle').textContent = 'Verlauf – ' + optText;
             }
-            // Chart mit neuem Filter neu aufbauen — Chart muss zerstört werden da sich der Hauptdatensatz ändert
+            // Zusatz-Alarme entfernen die jetzt der Hauptalarm sind
+            additionalAlarms = additionalAlarms.filter(a => a.alarmNum !== selectedAlarmFilter);
+            renderAdditionalAlarmChips();
+            // Chart mit neuem Filter neu aufbauen
             if (myChart) { myChart.destroy(); myChart = null; }
             if (chartLabels.length > 0) {
                 analyzeAndRender(chartLabels[0], chartLabels[chartLabels.length - 1]);
@@ -1007,9 +1135,13 @@
         function updateChartColors() {
             if (!myChart) return;
             myChart.data.datasets[0].backgroundColor = getBarColors(chartLabels);
-            if (myChart.data.datasets.length > 3 && !myChart.data.datasets[3].hidden) {
-                myChart.data.datasets[3].backgroundColor = getBarColors8235(chartLabels);
-            }
+            // Zusatz-Alarm Farben aktualisieren (ab Index 4)
+            additionalAlarms.forEach((aa, idx) => {
+                const dsIdx = 4 + idx;
+                if (myChart.data.datasets.length > dsIdx) {
+                    myChart.data.datasets[dsIdx].backgroundColor = getAdditionalBarColors(chartLabels, aa.color);
+                }
+            });
             myChart.update('none');
         }
 
@@ -1076,17 +1208,36 @@
                 renderRangeTopAlarms('cmpTop1', sel1Start, sel1End);
                 renderRangeTopAlarms('cmpTop2', sel2Start, sel2End);
             } else {
-                // Einzelner Bereich
-                compare.classList.add('hidden');
-                single.classList.remove('hidden');
+                // Einzelner Bereich → Vergleich mit Gesamtzeitraum
+                single.classList.add('hidden');
+                compare.classList.remove('hidden');
                 const isB1 = has1;
-                const st = isB1 ? sel1Start : sel2Start;
-                const en = isB1 ? sel1End   : sel2End;
-                const s  = rangeStats(st, en);
-                document.getElementById('singleCardTitle').textContent = isB1 ? 'Bereich 1' : 'Bereich 2';
-                document.getElementById('singleRangeLabel').textContent = fmtDate(st) + ' – ' + fmtDate(en) + ' (' + s.days + ' Tage)';
-                document.getElementById('singleTotal').textContent = s.total;
-                document.getElementById('singleAvg').textContent = s.avg.toFixed(1).replace('.', ',');
+                const selStart = isB1 ? sel1Start : sel2Start;
+                const selEnd   = isB1 ? sel1End   : sel2End;
+                const fullStart = chartLabels[0];
+                const fullEnd   = chartLabels[chartLabels.length - 1];
+
+                // Bereich 1 = gewählter Bereich, Bereich 2 = Gesamt
+                const s1 = rangeStats(selStart, selEnd);
+                const s2 = rangeStats(fullStart, fullEnd);
+                document.getElementById('cmp1Range').textContent = fmtDate(selStart) + ' – ' + fmtDate(selEnd);
+                document.getElementById('cmp2Range').textContent = fmtDate(fullStart) + ' – ' + fmtDate(fullEnd) + ' (Gesamt)';
+                document.getElementById('cmp1Total').textContent = s1.total;
+                document.getElementById('cmp2Total').textContent = s2.total;
+                document.getElementById('cmp1Avg').textContent = s1.avg.toFixed(1).replace('.', ',');
+                document.getElementById('cmp2Avg').textContent = s2.avg.toFixed(1).replace('.', ',');
+                document.getElementById('cmp1Days').textContent = s1.days;
+                document.getElementById('cmp2Days').textContent = s2.days;
+                const diff = s1.avg - s2.avg;
+                const pct  = s2.avg > 0 ? (diff / s2.avg) * 100 : 0;
+                const sign = diff >= 0 ? '+' : '';
+                const diffEl = document.getElementById('cmpDiffValue');
+                diffEl.textContent = `${sign}${diff.toFixed(1).replace('.', ',')} (${sign}${pct.toFixed(0)} %)`;
+                diffEl.className = 'font-semibold ' + (diff > 0 ? 'text-red-500' : diff < 0 ? 'text-emerald-600' : 'text-slate-500');
+
+                // Top-Alarme
+                renderRangeTopAlarms('cmpTop1', selStart, selEnd);
+                renderRangeTopAlarms('cmpTop2', fullStart, fullEnd);
             }
         }
 
