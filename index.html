@@ -263,10 +263,21 @@
                 </div>
 
                 <!-- Chart-Bereich -->
-                <div class="bg-white rounded-xl border border-slate-100 shadow-md">
+                <div class="bg-white rounded-xl border border-slate-100 shadow-md relative">
+                    <!-- Export/PDF oben rechts -->
+                    <div class="absolute top-3 right-3 z-10 flex items-center gap-1.5">
+                        <button id="downloadChartBtn" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-500 py-1 px-2.5 rounded-full flex items-center gap-1 border border-slate-200 transition-colors">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                            PNG
+                        </button>
+                        <button id="downloadPdfBtn" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-500 py-1 px-2.5 rounded-full flex items-center gap-1 border border-slate-200 transition-colors">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                            PDF
+                        </button>
+                    </div>
                     <!-- Chart-Header -->
-                    <div class="flex flex-wrap justify-between items-center px-4 pt-4 pb-2 gap-2">
-                        <div class="flex items-center gap-2">
+                    <div class="px-4 pt-4 pb-2">
+                        <div class="flex items-center gap-2 mb-2 pr-28">
                             <h3 id="chartTitle" class="text-sm font-semibold text-slate-600">Joystick Use – Verlauf (Alarm 8222)</h3>
                             <select id="alarmSelect" class="text-xs border border-slate-200 rounded-md px-2 py-1 bg-white text-slate-600 focus:border-indigo-300 focus:outline-none cursor-pointer min-w-[340px] max-w-[520px]">
                                 <option value="8222">8222 (Default)</option>
@@ -280,25 +291,16 @@
                         </div>
                         <div class="flex items-center gap-2 flex-wrap">
                             <button id="toggleAvgBtn" data-idx="1"
-                                class="toggle-line-btn text-xs px-2.5 py-1 rounded-full border border-red-200 text-red-500 bg-red-50 hover:bg-red-100 transition-colors">
+                                class="toggle-line-btn active text-xs font-medium px-2.5 py-1 rounded-full border-2 border-red-400 text-red-600 bg-red-50 shadow-sm hover:bg-red-100 transition-colors">
                                 ── Ø gesamt
                             </button>
                             <button id="toggle7dayBtn" data-idx="2"
-                                class="toggle-line-btn text-xs px-2.5 py-1 rounded-full border border-orange-200 text-orange-500 bg-orange-50 hover:bg-orange-100 transition-colors">
+                                class="toggle-line-btn active text-xs font-medium px-2.5 py-1 rounded-full border-2 border-orange-400 text-orange-600 bg-orange-50 shadow-sm hover:bg-orange-100 transition-colors">
                                 ·· 7-Tage-Ø
                             </button>
                             <button id="toggleSev3Btn" data-idx="3"
-                                class="toggle-line-btn text-xs px-2.5 py-1 rounded-full border border-slate-300 text-slate-500 bg-slate-50 hover:bg-slate-100 transition-colors">
+                                class="toggle-line-btn active text-xs font-medium px-2.5 py-1 rounded-full border-2 border-slate-400 text-slate-600 bg-slate-100 shadow-sm hover:bg-slate-200 transition-colors">
                                 ── Severity 3
-                            </button>
-                            <span class="flex-grow"></span>
-                            <button id="downloadChartBtn" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 py-1 px-3 rounded-full flex items-center gap-1.5 border border-slate-200 transition-colors">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                                Export
-                            </button>
-                            <button id="downloadPdfBtn" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 py-1 px-3 rounded-full flex items-center gap-1.5 border border-slate-200 transition-colors">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
-                                PDF
                             </button>
                         </div>
                     </div>
@@ -570,12 +572,24 @@
             return { json, anlagenName };
         }
 
+        // ── Tutorial-Modal ────────────────────────────────────────────────────────
+        document.getElementById('openTutorialBtn').addEventListener('click', () => {
+            document.getElementById('tutorialModal').classList.remove('hidden');
+        });
+        document.getElementById('closeTutorialBtn').addEventListener('click', () => {
+            document.getElementById('tutorialModal').classList.add('hidden');
+        });
+        document.getElementById('tutorialModal').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) e.currentTarget.classList.add('hidden');
+        });
+
         // ── Upload 1 ──────────────────────────────────────────────────────────────
         document.getElementById('fileUpload').addEventListener('change', function (e) {
             const file = e.target.files[0]; if (!file) return;
             document.getElementById('fileName').textContent = file.name;
             document.getElementById('loadingIndicator').classList.remove('hidden');
             document.getElementById('analysisSection').classList.add('hidden');
+            document.getElementById('instructionPanel').classList.add('hidden');
             hideError();
             const reader = new FileReader();
             reader.onload = ev => {
@@ -932,7 +946,7 @@
                         x: { grid: { display: false }, ticks: { callback: (val, idx) => fmtDate(chartLabels[idx]), ...(maxTicks ? { maxTicksLimit: maxTicks } : {}) } }
                     },
                     plugins: {
-                        tooltip: { backgroundColor: 'rgba(15,23,42,0.9)', padding: 10, titleFont: { size: 13 }, bodyFont: { size: 12 }, callbacks: { title: (items) => items[0] ? fmtDate(items[0].label) : '' } },
+                        tooltip: { backgroundColor: 'rgba(15,23,42,0.9)', padding: 10, titleFont: { size: 13 }, bodyFont: { size: 12 }, callbacks: { title: (items) => items[0] ? fmtDate(items[0].label) : '', label: (ctx) => { const v = ctx.parsed.y; return ctx.dataset.label + ': ' + (Number.isInteger(v) ? v : v.toFixed(1).replace('.', ',')); } } },
                         legend: { display: false }
                     }
                 }
@@ -945,7 +959,13 @@
                 if (!myChart) return;
                 const ds = myChart.data.datasets[parseInt(btn.dataset.idx)];
                 ds.hidden = !ds.hidden;
-                btn.classList.toggle('opacity-40', ds.hidden);
+                if (ds.hidden) {
+                    btn.classList.remove('active', 'shadow-sm', 'font-medium', 'border-2');
+                    btn.classList.add('opacity-40', 'border', 'line-through');
+                } else {
+                    btn.classList.add('active', 'shadow-sm', 'font-medium', 'border-2');
+                    btn.classList.remove('opacity-40', 'border', 'line-through');
+                }
                 myChart.update();
             });
         });
