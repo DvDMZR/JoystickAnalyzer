@@ -92,6 +92,14 @@
         }
         [data-tip]:hover::after { opacity: 1; }
 
+        /* Deaktivierte Pills – abgedimmt, aber Tooltip bleibt voll sichtbar */
+        .toggle-line-btn.pill-inactive {
+            opacity: 1;
+            filter: saturate(0.3) brightness(1.15);
+        }
+        .toggle-line-btn.pill-inactive::after { opacity: 0; }
+        .toggle-line-btn.pill-inactive:hover::after { opacity: 1; }
+
         /* ── KPI-Karten Akzentlinien ────────────────────────── */
         .kpi-indigo  { border-top: 4px solid #4f46e5; }
         .kpi-emerald { border-top: 4px solid #10b981; }
@@ -254,7 +262,7 @@
                     <div class="bg-white p-5 rounded-lg border border-slate-200 kpi-amber flex flex-col shadow-md" style="height:180px">
                         <p class="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
                             Peak-Tage <span id="peakCount" class="text-slate-300 font-normal"></span>
-                            <span class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-slate-100 text-slate-400 text-[10px] font-bold cursor-help leading-none" data-tip="Tage mit ≥ 150 % des Tagesdurchschnitts.&#10;Schwellenwert = MAX(Ø × 1,5 ; Ø + 1)&#10;Sortiert nach Häufigkeit, max. 10 Einträge.">i</span>
+                            <span class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-slate-100 text-slate-400 text-[10px] font-bold cursor-help leading-none" data-tip="Tage mit ≥ 150 % des Tagesdurchschnitts.&#10;Schwellenwert = MAX(Ø × 1,5 ; Ø + 1)&#10;Sortiert nach Häufigkeit, max. 10 Einträge.">?</span>
                         </p>
                         <div class="overflow-y-auto flex-grow">
                             <ul id="peakList" class="space-y-1.5 text-sm text-slate-600"></ul>
@@ -291,12 +299,12 @@
                         </div>
                         <div class="flex items-center gap-2 flex-wrap">
                             <button id="toggleAvgBtn" data-idx="1"
-                                class="toggle-line-btn text-xs px-2.5 py-1 rounded-full border border-red-400 text-red-600 bg-red-50 opacity-40 line-through hover:bg-red-100 transition-colors"
+                                class="toggle-line-btn pill-inactive text-xs px-2.5 py-1 rounded-full border border-red-400 text-red-600 bg-red-50 line-through hover:bg-red-100 transition-colors"
                                 data-tip="Durchschnitt nur für den&#10;ausgewählten Alarm.">
                                 ── Ø gesamt
                             </button>
                             <button id="toggle7dayBtn" data-idx="2"
-                                class="toggle-line-btn text-xs px-2.5 py-1 rounded-full border border-orange-400 text-orange-600 bg-orange-50 opacity-40 line-through hover:bg-orange-100 transition-colors"
+                                class="toggle-line-btn pill-inactive text-xs px-2.5 py-1 rounded-full border border-orange-400 text-orange-600 bg-orange-50 line-through hover:bg-orange-100 transition-colors"
                                 data-tip="Gleitender 7-Tage-Schnitt&#10;nur für den ausgewählten Alarm.">
                                 ·· 7-Tage-Ø
                             </button>
@@ -321,7 +329,7 @@
                         <div class="mb-4">
                             <div class="flex justify-between items-center mb-1.5">
                                 <span class="text-xs font-semibold text-orange-600 uppercase tracking-wide">Bereich 1
-                                    <span class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-orange-100 text-orange-400 text-[10px] font-bold cursor-help leading-none ml-1" data-tip="Wähle einen Zeitbereich per Schieberegler.&#10;Unten siehst du Alarmanzahl, Ø/Tag&#10;und die häufigsten Alarme für diesen Bereich.">i</span>
+                                    <span class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-orange-100 text-orange-400 text-[10px] font-bold cursor-help leading-none ml-1" data-tip="Wähle einen Zeitbereich per Schieberegler.&#10;Unten siehst du Alarmanzahl, Ø/Tag&#10;und die häufigsten Alarme für diesen Bereich.">?</span>
                                 </span>
                                 <button id="clearSel1Btn" class="text-xs text-slate-400 hover:text-slate-600">Zurücksetzen</button>
                             </div>
@@ -342,7 +350,7 @@
                         <div>
                             <div class="flex justify-between items-center mb-1.5">
                                 <span class="text-xs font-semibold text-teal-600 uppercase tracking-wide">Bereich 2
-                                    <span class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-teal-100 text-teal-400 text-[10px] font-bold cursor-help leading-none ml-1" data-tip="Zweiter Zeitbereich zum Vergleich.&#10;Beide Bereiche werden gegenübergestellt&#10;(Alarme, Ø/Tag, Differenz).">i</span>
+                                    <span class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-teal-100 text-teal-400 text-[10px] font-bold cursor-help leading-none ml-1" data-tip="Zweiter Zeitbereich zum Vergleich.&#10;Beide Bereiche werden gegenübergestellt&#10;(Alarme, Ø/Tag, Differenz).">?</span>
                                 </span>
                                 <button id="clearSel2Btn" class="text-xs text-slate-400 hover:text-slate-600">Zurücksetzen</button>
                             </div>
@@ -454,7 +462,7 @@
                 <div id="totalAlarmOverview" class="hidden mt-5">
                     <div class="bg-white rounded-xl border border-slate-200 shadow-md p-5">
                         <h3 class="text-sm font-semibold text-slate-600 uppercase tracking-widest mb-1">Total Alarm Overview
-                            <span class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-slate-100 text-slate-400 text-[10px] font-bold cursor-help leading-none ml-1" data-tip="Übersicht aller Alarmtypen im gesamten&#10;Zeitraum – sortiert nach Häufigkeit.&#10;Zeigt Anzahl, Anteil und Trendverlauf&#10;pro Alarmtyp.">i</span>
+                            <span class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-slate-100 text-slate-400 text-[10px] font-bold cursor-help leading-none ml-1" data-tip="Übersicht aller Alarmtypen im gesamten&#10;Zeitraum – sortiert nach Häufigkeit.&#10;Zeigt Anzahl, Anteil und Trendverlauf&#10;pro Alarmtyp.">?</span>
                         </h3>
                         <p id="overviewDateRange" class="text-xs text-slate-400 mb-3"></p>
                         <div id="overviewContent" class="overflow-x-auto max-h-96 overflow-y-auto"></div>
@@ -972,10 +980,10 @@
                 ds.hidden = !ds.hidden;
                 if (ds.hidden) {
                     btn.classList.remove('active', 'shadow-sm', 'font-medium', 'border-2');
-                    btn.classList.add('opacity-40', 'border', 'line-through');
+                    btn.classList.add('pill-inactive', 'border', 'line-through');
                 } else {
                     btn.classList.add('active', 'shadow-sm', 'font-medium', 'border-2');
-                    btn.classList.remove('opacity-40', 'border', 'line-through');
+                    btn.classList.remove('pill-inactive', 'border', 'line-through');
                 }
                 myChart.update();
             });
