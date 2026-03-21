@@ -1688,12 +1688,29 @@
             const isDark = document.documentElement.classList.contains('dark');
             localStorage.setItem('darkMode', isDark ? 'dark' : 'light');
             applyDarkModeIcons();
-            // Charts mit neuen Farben neu rendern
-            const start = document.getElementById('startDate').value;
-            const end = document.getElementById('endDate').value;
-            if (start && end && allAlarmsData.length > 0) {
-                analyzeAndRender(start, end);
+
+            // Chart-Farben in-place aktualisieren, OHNE analyzeAndRender (das würde Slider/Bereiche zurücksetzen)
+            const textColor = isDark ? '#94a3b8' : '#64748b';
+            const gridColor = isDark ? 'rgba(148,163,184,0.12)' : 'rgba(0,0,0,0.04)';
+
+            if (myChart) {
+                myChart.options.scales.y.ticks.color = textColor;
+                myChart.options.scales.y.title.color = textColor;
+                myChart.options.scales.y.grid.color = gridColor;
+                myChart.options.scales.x.ticks.color = textColor;
+                myChart.update('none');
             }
+
+            // Distribution-Charts aktualisieren
+            const distGridColor = isDark ? 'rgba(148,163,184,0.15)' : 'rgba(0,0,0,0.06)';
+            [selHourRef, selWeekRef, allHourRef, allWeekRef].forEach(ref => {
+                if (ref.chart) {
+                    ref.chart.options.scales.x.ticks.color = textColor;
+                    ref.chart.options.scales.y.ticks.color = textColor;
+                    ref.chart.options.scales.y.grid.color = distGridColor;
+                    ref.chart.update('none');
+                }
+            });
         });
 
     })();
