@@ -768,15 +768,15 @@
             });
             selectedAlarmFilter = '8222';
 
-            if (allAlarmsData.length === 0) {
-                showError('Keine Joystick-Use-Ereignisse (Alarm 8222) gefunden.');
+            if (allAlarmsDataSecond.length === 0) {
+                showError('Keine Alarm-Daten in der Datei gefunden.');
                 return;
             }
 
             document.getElementById('anlageName').textContent = anlage || 'Unbekannt';
-            const dates = [...new Set(allAlarmsData.map(i => i.date))].sort();
-            dataMinDate = dates[0];
-            dataMaxDate = dates[dates.length - 1];
+            const allDates = [...new Set(allAlarmsDataSecond.map(i => i.date))].sort();
+            dataMinDate = allDates[0];
+            dataMaxDate = allDates[allDates.length - 1];
             const todayStr = formatDateToYYYYMMDD(new Date());
 
             document.getElementById('totalDateRange').textContent = fmtDate(dataMinDate) + ' – ' + fmtDate(dataMaxDate);
@@ -1162,8 +1162,10 @@
             renderAdditionalAlarmChips();
             // Chart mit neuem Filter neu aufbauen
             if (myChart) { myChart.destroy(); myChart = null; }
-            if (chartLabels.length > 0) {
-                analyzeAndRender(chartLabels[0], chartLabels[chartLabels.length - 1]);
+            if (dataMinDate && dataMaxDate) {
+                const currentStart = document.getElementById('startDate').value;
+                const currentEnd = document.getElementById('endDate').value;
+                analyzeAndRender(currentStart, currentEnd);
             }
         });
 
