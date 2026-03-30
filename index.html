@@ -528,6 +528,30 @@
                     </div>
                 </div>
 
+                <!-- 7-Tage Trend steigende Alarme -->
+                <div id="trendSection7" class="hidden mt-5">
+                    <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-md p-5 transition-colors">
+                        <h3 class="text-sm font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-widest mb-1 flex items-center gap-1.5">
+                            7-Tage Trend – Steigende Alarme
+                            <span class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-slate-100 dark:bg-slate-600 text-slate-400 text-[10px] font-bold cursor-help leading-none" data-tip="Alarme mit steigender Häufigkeit&#10;in den letzten 7 Tagen.&#10;Vergleich: erste vs. zweite Hälfte.">?</span>
+                        </h3>
+                        <p id="trendDateRange7" class="text-xs text-slate-400 mb-3"></p>
+                        <ul id="trendList7" class="space-y-1"></ul>
+                    </div>
+                </div>
+
+                <!-- 30-Tage Trend steigende Alarme -->
+                <div id="trendSection30" class="hidden mt-5">
+                    <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-md p-5 transition-colors">
+                        <h3 class="text-sm font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-widest mb-1 flex items-center gap-1.5">
+                            30-Tage Trend – Steigende Alarme
+                            <span class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-slate-100 dark:bg-slate-600 text-slate-400 text-[10px] font-bold cursor-help leading-none" data-tip="Alarme mit steigender Häufigkeit&#10;in den letzten 30 Tagen.&#10;Vergleich: erste vs. zweite Hälfte.">?</span>
+                        </h3>
+                        <p id="trendDateRange30" class="text-xs text-slate-400 mb-3"></p>
+                        <ul id="trendList30" class="space-y-1"></ul>
+                    </div>
+                </div>
+
             </div>
         </div>
     </div>
@@ -812,6 +836,9 @@
 
         // ── Analyse & Rendern ─────────────────────────────────────────────────────
         function analyzeAndRender(startDate, endDate) {
+            // Datumfelder immer synchron halten (damit Alarm-Dropdown den aktuellen Bereich nutzt)
+            document.getElementById('startDate').value = startDate;
+            document.getElementById('endDate').value   = endDate;
             // Hauptalarm: entweder 8222 (default, nutzt allAlarmsData) oder custom aus allAlarmsDataSecond
             let filteredData;
             if (selectedAlarmFilter === '8222') {
@@ -896,6 +923,7 @@
             renderDistributionCharts(startDate, endDate);
             renderAlarmOverview(startDate, endDate);
             renderAllDistributionCharts(startDate, endDate);
+            renderTrendingAlarms();
         }
 
         // ── Gleitender Durchschnitt ───────────────────────────────────────────────
@@ -1495,6 +1523,80 @@
             document.getElementById('overviewDateRange').textContent =
                 fmtDate(startDate) + ' – ' + fmtDate(endDate) + ' (' + totalCount + ' Alarme gesamt)';
             section.classList.remove('hidden');
+        }
+
+        // ── Trend-Alarme (7 & 30 Tage) ──────────────────────────────────────
+        function renderTrendingAlarms() {
+            [7, 30].forEach(days => {
+                const sectionEl = document.getElementById('trendSection' + days);
+                const listEl    = document.getElementById('trendList' + days);
+                const rangeEl   = document.getElementById('trendDateRange' + days);
+                if (!sectionEl || !listEl || !dataMaxDate) { if (sectionEl) sectionEl.classList.add('hidden'); return; }
+
+                const endDate   = dataMaxDate;
+                const startDate = subtractDays(endDate, days - 1);
+                const clamped   = (dataMinDate && startDate < dataMinDate) ? dataMinDate : startDate;
+
+                const alarms = allAlarmsDataSecond.filter(i => i.date >= clamped && i.date <= endDate);
+                if (alarms.length === 0) { sectionEl.classList.add('hidden'); return; }
+
+                // Mittelpunkt für Halbierung
+                const halfDays = Math.floor(days / 2);
+                const midDate  = subtractDays(endDate, halfDays - 1);
+
+                // Erste Hälfte = clamped bis < midDate, Zweite Hälfte = midDate bis endDate
+                const firstHalf  = alarms.filter(i => i.date >= clamped && i.date < midDate);
+                const secondHalf = alarms.filter(i => i.date >= midDate && i.date <= endDate);
+
+                // Tage pro Hälfte (Kalendertage, nicht nur Tage mit Daten)
+                const d1 = Math.max(1, days - halfDays);
+                const d2 = Math.max(1, halfDays);
+
+                // Nach Alarm-Nachricht aggregieren
+                const freq1 = {}, freq2 = {};
+                firstHalf.forEach(a => {
+                    const msg = a.message || '(kein Text)';
+                    freq1[msg] = (freq1[msg] || 0) + 1;
+                });
+                secondHalf.forEach(a => {
+                    const msg = a.message || '(kein Text)';
+                    freq2[msg] = (freq2[msg] || 0) + 1;
+                });
+
+                // Steigende Alarme berechnen
+                const allMsgs = new Set([...Object.keys(freq1), ...Object.keys(freq2)]);
+                const rising  = [];
+                allMsgs.forEach(msg => {
+                    const avg1 = (freq1[msg] || 0) / d1;
+                    const avg2 = (freq2[msg] || 0) / d2;
+                    if (avg2 > avg1 && avg1 > 0) {
+                        rising.push({ msg, count: (freq1[msg] || 0) + (freq2[msg] || 0), pct: ((avg2 - avg1) / avg1) * 100 });
+                    } else if (avg2 > 0 && avg1 === 0) {
+                        rising.push({ msg, count: freq2[msg] || 0, pct: Infinity });
+                    }
+                });
+
+                rising.sort((a, b) => b.pct - a.pct);
+                const top = rising.slice(0, 10);
+
+                if (top.length === 0) { sectionEl.classList.add('hidden'); return; }
+
+                rangeEl.textContent = fmtDate(clamped) + ' – ' + fmtDate(endDate) + ' (' + top.length + ' steigende Alarme)';
+
+                const nums = ['\u2460','\u2461','\u2462','\u2463','\u2464','\u2465','\u2466','\u2467','\u2468','\u2469'];
+                const rankClass = i => i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : 'rank-default';
+                listEl.innerHTML = top.map((item, i) => {
+                    const pctLabel = item.pct === Infinity ? 'neu' : ('+' + item.pct.toFixed(0) + '%');
+                    return `<li class="flex items-start gap-2 px-2 py-1.5 rounded border text-xs ${rankClass(i)}">
+                        <span class="shrink-0 font-bold text-sm leading-tight">${nums[i] || (i + 1)}</span>
+                        <span class="flex-1 leading-snug break-all">${esc(item.msg)}</span>
+                        <span class="shrink-0 font-bold tabular-nums">${item.count}\u00d7</span>
+                        <span class="shrink-0 text-red-500 dark:text-red-400 font-semibold">${pctLabel}</span>
+                    </li>`;
+                }).join('');
+
+                sectionEl.classList.remove('hidden');
+            });
         }
 
         // ── Gemeinsame Chart-Optionen ────────────────────────────────────────
