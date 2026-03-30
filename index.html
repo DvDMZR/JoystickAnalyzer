@@ -528,27 +528,21 @@
                     </div>
                 </div>
 
-                <!-- 7-Tage Trend steigende Alarme -->
-                <div id="trendSection7" class="hidden mt-5">
+                <!-- Trend – Steigende Alarme -->
+                <div id="trendSection" class="hidden mt-5">
                     <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-md p-5 transition-colors">
-                        <h3 class="text-sm font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-widest mb-1 flex items-center gap-1.5">
-                            7-Tage Trend – Steigende Alarme
-                            <span class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-slate-100 dark:bg-slate-600 text-slate-400 text-[10px] font-bold cursor-help leading-none" data-tip="Alarme mit steigender Häufigkeit&#10;in den letzten 7 Tagen.&#10;Vergleich: erste vs. zweite Hälfte.">?</span>
-                        </h3>
-                        <p id="trendDateRange7" class="text-xs text-slate-400 mb-3"></p>
-                        <ul id="trendList7" class="space-y-1"></ul>
-                    </div>
-                </div>
-
-                <!-- 30-Tage Trend steigende Alarme -->
-                <div id="trendSection30" class="hidden mt-5">
-                    <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-md p-5 transition-colors">
-                        <h3 class="text-sm font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-widest mb-1 flex items-center gap-1.5">
-                            30-Tage Trend – Steigende Alarme
-                            <span class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-slate-100 dark:bg-slate-600 text-slate-400 text-[10px] font-bold cursor-help leading-none" data-tip="Alarme mit steigender Häufigkeit&#10;in den letzten 30 Tagen.&#10;Vergleich: erste vs. zweite Hälfte.">?</span>
-                        </h3>
-                        <p id="trendDateRange30" class="text-xs text-slate-400 mb-3"></p>
-                        <ul id="trendList30" class="space-y-1"></ul>
+                        <div class="flex flex-wrap items-center justify-between gap-3 mb-2">
+                            <h3 class="text-sm font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-widest flex items-center gap-1.5">
+                                Trend – Steigende Alarme
+                            </h3>
+                            <div class="flex gap-1.5" id="trendPills">
+                                <button data-days="7" class="trend-pill px-3 py-1 rounded-full text-xs font-medium border transition-colors bg-indigo-600 text-white border-indigo-600">7 Tage</button>
+                                <button data-days="30" class="trend-pill px-3 py-1 rounded-full text-xs font-medium border transition-colors bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600 hover:border-indigo-300">30 Tage</button>
+                            </div>
+                        </div>
+                        <p class="text-[11px] text-slate-400 dark:text-slate-500 mb-2 leading-snug">Der gewählte Zeitraum wird in zwei gleiche Hälften geteilt. Für jeden Alarmtyp wird der Tagesdurchschnitt beider Hälften verglichen. Alarme, deren Durchschnitt in der zweiten Hälfte höher ist, gelten als steigend und werden nach prozentualer Zunahme sortiert.</p>
+                        <p id="trendDateRange" class="text-xs text-slate-400 mb-3"></p>
+                        <div id="trendList" class="space-y-1.5"></div>
                     </div>
                 </div>
 
@@ -582,6 +576,8 @@
         ];
 
         // Distribution chart refs managed via selHourRef, selWeekRef, allHourRef, allWeekRef
+        let activeTrendDays = 7;
+        let trendSparklines = []; // Chart.js Instanzen für Sparklines
 
         // Bereich 1 (orange) & Bereich 2 (teal)
         let sel1Start = null, sel1End = null;
@@ -923,7 +919,7 @@
             renderDistributionCharts(startDate, endDate);
             renderAlarmOverview(startDate, endDate);
             renderAllDistributionCharts(startDate, endDate);
-            renderTrendingAlarms();
+            renderTrendingAlarms(activeTrendDays);
         }
 
         // ── Gleitender Durchschnitt ───────────────────────────────────────────────
@@ -1195,6 +1191,14 @@
                 const currentEnd = document.getElementById('endDate').value;
                 analyzeAndRender(currentStart, currentEnd);
             }
+        });
+
+        // ── Trend-Pill Toggle ──────────────────────────────────────────────
+        document.querySelectorAll('.trend-pill').forEach(btn => {
+            btn.addEventListener('click', () => {
+                activeTrendDays = parseInt(btn.dataset.days, 10);
+                renderTrendingAlarms(activeTrendDays);
+            });
         });
 
         // ── Schieber initialisieren ───────────────────────────────────────────────
@@ -1525,78 +1529,121 @@
             section.classList.remove('hidden');
         }
 
-        // ── Trend-Alarme (7 & 30 Tage) ──────────────────────────────────────
-        function renderTrendingAlarms() {
-            [7, 30].forEach(days => {
-                const sectionEl = document.getElementById('trendSection' + days);
-                const listEl    = document.getElementById('trendList' + days);
-                const rangeEl   = document.getElementById('trendDateRange' + days);
-                if (!sectionEl || !listEl || !dataMaxDate) { if (sectionEl) sectionEl.classList.add('hidden'); return; }
+        // ── Trend-Alarme (7 / 30 Tage, Pill-Toggle) ──────────────────────
+        function setActiveTrendPill(days) {
+            document.querySelectorAll('.trend-pill').forEach(b => {
+                if (parseInt(b.dataset.days) === days) {
+                    b.classList.remove('bg-white', 'dark:bg-slate-700', 'text-slate-600', 'dark:text-slate-300', 'border-slate-200', 'dark:border-slate-600');
+                    b.classList.add('bg-indigo-600', 'text-white', 'border-indigo-600');
+                } else {
+                    b.classList.remove('bg-indigo-600', 'text-white', 'border-indigo-600');
+                    b.classList.add('bg-white', 'dark:bg-slate-700', 'text-slate-600', 'dark:text-slate-300', 'border-slate-200', 'dark:border-slate-600');
+                }
+            });
+        }
 
-                const endDate   = dataMaxDate;
-                const startDate = subtractDays(endDate, days - 1);
-                const clamped   = (dataMinDate && startDate < dataMinDate) ? dataMinDate : startDate;
+        function renderTrendingAlarms(days) {
+            const sectionEl = document.getElementById('trendSection');
+            const listEl    = document.getElementById('trendList');
+            const rangeEl   = document.getElementById('trendDateRange');
+            if (!sectionEl || !listEl || !dataMaxDate) { if (sectionEl) sectionEl.classList.add('hidden'); return; }
 
-                const alarms = allAlarmsDataSecond.filter(i => i.date >= clamped && i.date <= endDate);
-                if (alarms.length === 0) { sectionEl.classList.add('hidden'); return; }
+            // Sparklines aufräumen
+            trendSparklines.forEach(c => c.destroy());
+            trendSparklines = [];
 
-                // Mittelpunkt für Halbierung
-                const halfDays = Math.floor(days / 2);
-                const midDate  = subtractDays(endDate, halfDays - 1);
+            setActiveTrendPill(days);
 
-                // Erste Hälfte = clamped bis < midDate, Zweite Hälfte = midDate bis endDate
-                const firstHalf  = alarms.filter(i => i.date >= clamped && i.date < midDate);
-                const secondHalf = alarms.filter(i => i.date >= midDate && i.date <= endDate);
+            const endDate   = dataMaxDate;
+            const startDate = subtractDays(endDate, days - 1);
+            const clamped   = (dataMinDate && startDate < dataMinDate) ? dataMinDate : startDate;
 
-                // Tage pro Hälfte (Kalendertage, nicht nur Tage mit Daten)
-                const d1 = Math.max(1, days - halfDays);
-                const d2 = Math.max(1, halfDays);
+            const alarms = allAlarmsDataSecond.filter(i => i.date >= clamped && i.date <= endDate);
+            if (alarms.length === 0) { sectionEl.classList.add('hidden'); return; }
 
-                // Nach Alarm-Nachricht aggregieren
-                const freq1 = {}, freq2 = {};
-                firstHalf.forEach(a => {
-                    const msg = a.message || '(kein Text)';
-                    freq1[msg] = (freq1[msg] || 0) + 1;
-                });
-                secondHalf.forEach(a => {
-                    const msg = a.message || '(kein Text)';
-                    freq2[msg] = (freq2[msg] || 0) + 1;
-                });
+            // Alle Tage im Bereich auflisten
+            const allDates = [];
+            let cur = new Date(clamped + 'T00:00:00');
+            const endD = new Date(endDate + 'T00:00:00');
+            while (cur <= endD) { allDates.push(formatDateToYYYYMMDD(cur)); cur.setDate(cur.getDate() + 1); }
 
-                // Steigende Alarme berechnen
-                const allMsgs = new Set([...Object.keys(freq1), ...Object.keys(freq2)]);
-                const rising  = [];
-                allMsgs.forEach(msg => {
-                    const avg1 = (freq1[msg] || 0) / d1;
-                    const avg2 = (freq2[msg] || 0) / d2;
-                    if (avg2 > avg1 && avg1 > 0) {
-                        rising.push({ msg, count: (freq1[msg] || 0) + (freq2[msg] || 0), pct: ((avg2 - avg1) / avg1) * 100 });
-                    } else if (avg2 > 0 && avg1 === 0) {
-                        rising.push({ msg, count: freq2[msg] || 0, pct: Infinity });
+            const halfIdx = Math.floor(allDates.length / 2);
+            const d1 = Math.max(1, halfIdx);
+            const d2 = Math.max(1, allDates.length - halfIdx);
+            const midDate = allDates[halfIdx];
+
+            // Pro Alarm-Nachricht: Counts erste/zweite Hälfte + tägliche Counts
+            const msgData = {};
+            alarms.forEach(a => {
+                const msg = a.message || '(kein Text)';
+                if (!msgData[msg]) msgData[msg] = { c1: 0, c2: 0, daily: {} };
+                if (a.date < midDate) msgData[msg].c1++;
+                else msgData[msg].c2++;
+                msgData[msg].daily[a.date] = (msgData[msg].daily[a.date] || 0) + 1;
+            });
+
+            // Steigende Alarme berechnen
+            const rising = [];
+            Object.entries(msgData).forEach(([msg, d]) => {
+                const avg1 = d.c1 / d1;
+                const avg2 = d.c2 / d2;
+                if (avg2 > avg1 && avg1 > 0) {
+                    rising.push({ msg, count: d.c1 + d.c2, pct: ((avg2 - avg1) / avg1) * 100, daily: d.daily });
+                } else if (avg2 > 0 && avg1 === 0) {
+                    rising.push({ msg, count: d.c2, pct: Infinity, daily: d.daily });
+                }
+            });
+
+            rising.sort((a, b) => b.pct - a.pct);
+            const top = rising.slice(0, 10);
+
+            if (top.length === 0) {
+                listEl.innerHTML = '<p class="text-xs text-slate-400 italic">Keine steigenden Alarme im Zeitraum gefunden.</p>';
+                rangeEl.textContent = fmtDate(clamped) + ' \u2013 ' + fmtDate(endDate);
+                sectionEl.classList.remove('hidden');
+                return;
+            }
+
+            rangeEl.textContent = fmtDate(clamped) + ' \u2013 ' + fmtDate(endDate) + '  \u00b7  ' + top.length + ' steigende Alarme';
+
+            const nums = ['\u2460','\u2461','\u2462','\u2463','\u2464','\u2465','\u2466','\u2467','\u2468','\u2469'];
+            const rankClass = i => i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : 'rank-default';
+
+            listEl.innerHTML = top.map((item, idx) => {
+                const pctLabel = item.pct === Infinity ? 'neu' : ('+' + item.pct.toFixed(0) + '%');
+                const canvasId = 'trendSpark_' + idx;
+                return `<div class="flex items-center gap-2 px-3 py-2 rounded border text-xs ${rankClass(idx)}">
+                    <span class="shrink-0 font-bold text-sm leading-tight w-5 text-center">${nums[idx] || (idx + 1)}</span>
+                    <span class="flex-1 leading-snug break-all min-w-0">${esc(item.msg)}</span>
+                    <span class="shrink-0 font-bold tabular-nums text-slate-600 dark:text-slate-300">${item.count}\u00d7</span>
+                    <span class="shrink-0 font-semibold tabular-nums text-red-500 dark:text-red-400 w-14 text-right">${pctLabel}</span>
+                    <canvas id="${canvasId}" width="100" height="28" class="shrink-0" style="width:100px;height:28px"></canvas>
+                </div>`;
+            }).join('');
+
+            // Sparklines rendern
+            top.forEach((item, idx) => {
+                const canvasEl = document.getElementById('trendSpark_' + idx);
+                if (!canvasEl) return;
+                const counts = allDates.map(d => item.daily[d] || 0);
+                const colors = counts.map((_, i) => i < halfIdx ? 'rgba(148,163,184,0.5)' : 'rgba(239,68,68,0.7)');
+                const spark = new Chart(canvasEl, {
+                    type: 'bar',
+                    data: {
+                        labels: allDates,
+                        datasets: [{ data: counts, backgroundColor: colors, borderRadius: 1, barPercentage: 0.9, categoryPercentage: 0.95 }]
+                    },
+                    options: {
+                        responsive: false, maintainAspectRatio: false,
+                        plugins: { legend: { display: false }, tooltip: { enabled: false } },
+                        scales: { x: { display: false }, y: { display: false, beginAtZero: true } },
+                        animation: { duration: 300 }
                     }
                 });
-
-                rising.sort((a, b) => b.pct - a.pct);
-                const top = rising.slice(0, 10);
-
-                if (top.length === 0) { sectionEl.classList.add('hidden'); return; }
-
-                rangeEl.textContent = fmtDate(clamped) + ' – ' + fmtDate(endDate) + ' (' + top.length + ' steigende Alarme)';
-
-                const nums = ['\u2460','\u2461','\u2462','\u2463','\u2464','\u2465','\u2466','\u2467','\u2468','\u2469'];
-                const rankClass = i => i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : 'rank-default';
-                listEl.innerHTML = top.map((item, i) => {
-                    const pctLabel = item.pct === Infinity ? 'neu' : ('+' + item.pct.toFixed(0) + '%');
-                    return `<li class="flex items-start gap-2 px-2 py-1.5 rounded border text-xs ${rankClass(i)}">
-                        <span class="shrink-0 font-bold text-sm leading-tight">${nums[i] || (i + 1)}</span>
-                        <span class="flex-1 leading-snug break-all">${esc(item.msg)}</span>
-                        <span class="shrink-0 font-bold tabular-nums">${item.count}\u00d7</span>
-                        <span class="shrink-0 text-red-500 dark:text-red-400 font-semibold">${pctLabel}</span>
-                    </li>`;
-                }).join('');
-
-                sectionEl.classList.remove('hidden');
+                trendSparklines.push(spark);
             });
+
+            sectionEl.classList.remove('hidden');
         }
 
         // ── Gemeinsame Chart-Optionen ────────────────────────────────────────
