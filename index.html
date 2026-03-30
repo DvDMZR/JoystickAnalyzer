@@ -594,7 +594,8 @@
             return m ? m[1] : null;
         }
         function cleanAlarmLabel(msg) {
-            return String(msg).replace(/\s*[\(\{][^)\}]*[\)\}]/g, '').trim();
+            // Alles ab der ersten Klammer abschneiden, trailing Sonderzeichen entfernen
+            return String(msg).replace(/\s*[\(\{].*$/, '').replace(/[\s\-–:]+$/, '').trim();
         }
 
         // ── Animations-Helfer ────────────────────────────────────────────────────
@@ -1572,25 +1573,27 @@
             const d2 = Math.max(1, allDates.length - halfIdx);
             const midDate = allDates[halfIdx];
 
-            // Pro Alarm-Nachricht: Counts erste/zweite Hälfte + tägliche Counts
-            const msgData = {};
+            // Pro Alarm-NUMMER gruppieren (nicht voller Text)
+            const numData = {};
             alarms.forEach(a => {
-                const msg = a.message || '(kein Text)';
-                if (!msgData[msg]) msgData[msg] = { c1: 0, c2: 0, daily: {} };
-                if (a.date < midDate) msgData[msg].c1++;
-                else msgData[msg].c2++;
-                msgData[msg].daily[a.date] = (msgData[msg].daily[a.date] || 0) + 1;
+                const num = extractAlarmNumber(a.message);
+                if (!num) return;
+                if (!numData[num]) numData[num] = { label: cleanAlarmLabel(a.message), c1: 0, c2: 0, daily: {} };
+                if (a.date < midDate) numData[num].c1++;
+                else numData[num].c2++;
+                numData[num].daily[a.date] = (numData[num].daily[a.date] || 0) + 1;
             });
 
             // Steigende Alarme berechnen
             const rising = [];
-            Object.entries(msgData).forEach(([msg, d]) => {
+            Object.entries(numData).forEach(([num, d]) => {
                 const avg1 = d.c1 / d1;
                 const avg2 = d.c2 / d2;
+                const total = d.c1 + d.c2;
                 if (avg2 > avg1 && avg1 > 0) {
-                    rising.push({ msg, count: d.c1 + d.c2, pct: ((avg2 - avg1) / avg1) * 100, daily: d.daily });
+                    rising.push({ num, label: d.label, count: total, avg1, avg2, pct: ((avg2 - avg1) / avg1) * 100, daily: d.daily });
                 } else if (avg2 > 0 && avg1 === 0) {
-                    rising.push({ msg, count: d.c2, pct: Infinity, daily: d.daily });
+                    rising.push({ num, label: d.label, count: d.c2, avg1: 0, avg2, pct: Infinity, daily: d.daily });
                 }
             });
 
@@ -1610,35 +1613,74 @@
             const rankClass = i => i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : 'rank-default';
 
             listEl.innerHTML = top.map((item, idx) => {
-                const pctLabel = item.pct === Infinity ? 'neu' : ('+' + item.pct.toFixed(0) + '%');
+                const pctLabel = item.pct === Infinity
+                    ? '<span class="text-amber-500 dark:text-amber-400">neu</span>'
+                    : '<span class="text-red-500 dark:text-red-400">+' + item.pct.toFixed(0) + '%</span>';
+                const avg1Fmt = item.avg1.toFixed(1).replace('.', ',');
+                const avg2Fmt = item.avg2.toFixed(1).replace('.', ',');
                 const canvasId = 'trendSpark_' + idx;
-                return `<div class="flex items-center gap-2 px-3 py-2 rounded border text-xs ${rankClass(idx)}">
+                return `<div class="flex items-center gap-3 px-3 py-2.5 rounded border text-xs ${rankClass(idx)}">
                     <span class="shrink-0 font-bold text-sm leading-tight w-5 text-center">${nums[idx] || (idx + 1)}</span>
-                    <span class="flex-1 leading-snug break-all min-w-0">${esc(item.msg)}</span>
-                    <span class="shrink-0 font-bold tabular-nums text-slate-600 dark:text-slate-300">${item.count}\u00d7</span>
-                    <span class="shrink-0 font-semibold tabular-nums text-red-500 dark:text-red-400 w-14 text-right">${pctLabel}</span>
-                    <canvas id="${canvasId}" width="100" height="28" class="shrink-0" style="width:100px;height:28px"></canvas>
+                    <div class="flex-1 min-w-0">
+                        <div class="font-medium text-slate-700 dark:text-slate-200 leading-snug truncate">${esc(item.label)}</div>
+                        <div class="text-[10px] text-slate-400 mt-0.5">\u00d8 ${avg1Fmt}/Tag \u2192 \u00d8 ${avg2Fmt}/Tag</div>
+                    </div>
+                    <div class="shrink-0 text-right" style="min-width:70px">
+                        <div class="font-bold tabular-nums text-slate-600 dark:text-slate-300">${item.count}\u00d7 gesamt</div>
+                        <div class="font-semibold tabular-nums text-sm">${pctLabel}</div>
+                    </div>
+                    <canvas id="${canvasId}" width="120" height="36" class="shrink-0" style="width:120px;height:36px"></canvas>
                 </div>`;
             }).join('');
 
             // Sparklines rendern
+            const isDark = document.documentElement.classList.contains('dark');
+            const gray1  = isDark ? 'rgba(148,163,184,0.35)' : 'rgba(148,163,184,0.5)';
+            const red2   = isDark ? 'rgba(248,113,113,0.75)' : 'rgba(239,68,68,0.7)';
             top.forEach((item, idx) => {
                 const canvasEl = document.getElementById('trendSpark_' + idx);
                 if (!canvasEl) return;
                 const counts = allDates.map(d => item.daily[d] || 0);
-                const colors = counts.map((_, i) => i < halfIdx ? 'rgba(148,163,184,0.5)' : 'rgba(239,68,68,0.7)');
+                const colors = counts.map((_, i) => i < halfIdx ? gray1 : red2);
                 const spark = new Chart(canvasEl, {
                     type: 'bar',
                     data: {
-                        labels: allDates,
-                        datasets: [{ data: counts, backgroundColor: colors, borderRadius: 1, barPercentage: 0.9, categoryPercentage: 0.95 }]
+                        labels: allDates.map(d => fmtDate(d)),
+                        datasets: [{ data: counts, backgroundColor: colors, borderRadius: 1, barPercentage: 0.85, categoryPercentage: 0.92 }]
                     },
                     options: {
                         responsive: false, maintainAspectRatio: false,
-                        plugins: { legend: { display: false }, tooltip: { enabled: false } },
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                enabled: true, backgroundColor: 'rgba(15,23,42,0.9)', padding: 6,
+                                titleFont: { size: 10 }, bodyFont: { size: 10 },
+                                callbacks: { label: ctx => ctx.parsed.y + ' Alarme' }
+                            },
+                            // Trennlinie zwischen den Hälften
+                            annotation: undefined
+                        },
                         scales: { x: { display: false }, y: { display: false, beginAtZero: true } },
                         animation: { duration: 300 }
-                    }
+                    },
+                    plugins: [{
+                        id: 'halfDivider',
+                        afterDraw(chart) {
+                            const meta = chart.getDatasetMeta(0);
+                            if (!meta.data[halfIdx]) return;
+                            const ctx = chart.ctx;
+                            const x = meta.data[halfIdx].x - (meta.data[halfIdx].width || 2);
+                            ctx.save();
+                            ctx.strokeStyle = isDark ? 'rgba(148,163,184,0.4)' : 'rgba(100,116,139,0.35)';
+                            ctx.lineWidth = 1;
+                            ctx.setLineDash([2, 2]);
+                            ctx.beginPath();
+                            ctx.moveTo(x, chart.chartArea.top);
+                            ctx.lineTo(x, chart.chartArea.bottom);
+                            ctx.stroke();
+                            ctx.restore();
+                        }
+                    }]
                 });
                 trendSparklines.push(spark);
             });
