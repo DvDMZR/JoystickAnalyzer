@@ -594,7 +594,8 @@
             return m ? m[1] : null;
         }
         function cleanAlarmLabel(msg) {
-            return String(msg).replace(/\s*[\(\{][^)\}]*[\)\}]/g, '').trim();
+            // Alles ab der ersten Klammer abschneiden, trailing Sonderzeichen entfernen
+            return String(msg).replace(/\s*[\(\{].*$/, '').replace(/[\s\-–:]+$/, '').trim();
         }
 
         // ── Animations-Helfer ────────────────────────────────────────────────────
