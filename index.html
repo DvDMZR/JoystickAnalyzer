@@ -541,7 +541,13 @@
                             </div>
                         </div>
                         <p class="text-[11px] text-slate-400 dark:text-slate-500 mb-2 leading-snug">Der gewählte Zeitraum wird in zwei gleiche Hälften geteilt. Für jeden Alarmtyp wird der Tagesdurchschnitt beider Hälften verglichen. Alarme, deren Durchschnitt in der zweiten Hälfte höher ist, gelten als steigend und werden nach prozentualer Zunahme sortiert.</p>
-                        <p id="trendDateRange" class="text-xs text-slate-400 mb-3"></p>
+                        <div class="flex flex-wrap items-center gap-4 mb-3">
+                            <p id="trendDateRange" class="text-xs text-slate-400"></p>
+                            <label class="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 cursor-pointer select-none">
+                                <input type="checkbox" id="trendMinFilter" class="rounded border-slate-300 dark:border-slate-600 text-indigo-600 focus:ring-indigo-500 w-3.5 h-3.5">
+                                Mind. 5× aufgetreten
+                            </label>
+                        </div>
                         <div id="trendList" class="space-y-1.5"></div>
                     </div>
                 </div>
@@ -1193,12 +1199,15 @@
             }
         });
 
-        // ── Trend-Pill Toggle ──────────────────────────────────────────────
+        // ── Trend-Pill Toggle + Filter ──────────────────────────────────────
         document.querySelectorAll('.trend-pill').forEach(btn => {
             btn.addEventListener('click', () => {
                 activeTrendDays = parseInt(btn.dataset.days, 10);
                 renderTrendingAlarms(activeTrendDays);
             });
+        });
+        document.getElementById('trendMinFilter').addEventListener('change', () => {
+            renderTrendingAlarms(activeTrendDays);
         });
 
         // ── Schieber initialisieren ───────────────────────────────────────────────
@@ -1587,8 +1596,19 @@
                 }
             });
 
-            rising.sort((a, b) => b.pct - a.pct);
-            const top = rising.slice(0, 10);
+            // Sortierung: echte %-Steigerung absteigend, "neu" (Infinity) dahinter nach Count
+            rising.sort((a, b) => {
+                const aNew = a.pct === Infinity ? 1 : 0;
+                const bNew = b.pct === Infinity ? 1 : 0;
+                if (aNew !== bNew) return aNew - bNew; // echte % zuerst, "neu" nach hinten
+                if (aNew && bNew) return b.count - a.count; // bei "neu" nach Count sortieren
+                return b.pct - a.pct; // sonst nach % absteigend
+            });
+
+            // Mindestanzahl-Filter
+            const minFilter = document.getElementById('trendMinFilter').checked;
+            const filtered = minFilter ? rising.filter(r => r.count >= 5) : rising;
+            const top = filtered.slice(0, 15);
 
             if (top.length === 0) {
                 listEl.innerHTML = '<p class="text-xs text-slate-400 italic">Keine steigenden Alarme im Zeitraum gefunden.</p>';
