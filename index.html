@@ -599,8 +599,21 @@
             return m ? m[1] : null;
         }
         function cleanAlarmLabel(msg) {
-            // Alles ab der ersten Klammer abschneiden, trailing Sonderzeichen entfernen
-            return String(msg).replace(/\s*[\(\{].*$/, '').replace(/[\s\-–:]+$/, '').trim();
+            // Alles ab der ersten Klammer abschneiden (variabler Fahrzeugstatus),
+            // Prozentwerte außerhalb der Klammern vereinheitlichen (variabler Batteriestatus),
+            // trailing Sonderzeichen entfernen
+            return String(msg)
+                .replace(/\s*\(([^()]|\([^()]*\))*\)/g, '')
+                .replace(/\s*[\(\{].*$/, '')
+                .replace(/\d+\s*%/g, 'x%')
+                .replace(/[\s\-–:]+$/, '')
+                .trim();
+        }
+        // Gruppierungsschlüssel: Alarmnummer wenn vorhanden, sonst bereinigter Text.
+        // So zählen Meldungen mit gleicher Nummer aber variablem Zusatz (Batterie-%,
+        // Fahrzeugstatus in Klammern) als derselbe Alarmtyp.
+        function alarmGroupKey(msg) {
+            return extractAlarmNumber(msg) || cleanAlarmLabel(msg) || '(kein Text)';
         }
 
         // ── Animations-Helfer ────────────────────────────────────────────────────
@@ -1326,8 +1339,13 @@
             if (!ul || !start || !end) return;
             const alarms = allAlarmsDataSecond.filter(i => i.date >= start && i.date <= end);
             const freq = {};
-            alarms.forEach(a => { if (a.message) freq[a.message] = (freq[a.message] || 0) + 1; });
-            const top = Object.entries(freq).sort((a, b) => b[1] - a[1]).slice(0, 5);
+            alarms.forEach(a => {
+                if (!a.message) return;
+                const key = alarmGroupKey(a.message);
+                if (!freq[key]) freq[key] = { label: cleanAlarmLabel(a.message) || '(kein Text)', count: 0 };
+                freq[key].count++;
+            });
+            const top = Object.values(freq).sort((a, b) => b.count - a.count).slice(0, 5).map(g => [g.label, g.count]);
             if (top.length === 0) { ul.innerHTML = '<li class="text-slate-400 italic text-xs">Keine Alarme</li>'; return; }
             const rankClass = (i) => i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : 'rank-default';
             const nums = ['①','②','③','④','⑤'];
@@ -1464,8 +1482,13 @@
 
                 // ── Häufigste Alarme (alle Gruppen) ──────────────────────────
                 const freq = {};
-                allGrouped.forEach(a => { if (a.message) freq[a.message] = (freq[a.message] || 0) + 1; });
-                const topAlarms = Object.entries(freq).sort((a, b) => b[1] - a[1]).slice(0, 5);
+                allGrouped.forEach(a => {
+                    if (!a.message) return;
+                    const key = alarmGroupKey(a.message);
+                    if (!freq[key]) freq[key] = { label: cleanAlarmLabel(a.message) || '(kein Text)', count: 0 };
+                    freq[key].count++;
+                });
+                const topAlarms = Object.values(freq).sort((a, b) => b.count - a.count).slice(0, 5).map(g => [g.label, g.count]);
                 if (topAlarms.length >= 2) {
                     const rankClass = (i) => i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : 'rank-default';
                     const nums = ['①','②','③','④','⑤'];
@@ -1494,28 +1517,35 @@
             const allInRange = allAlarmsDataSecond.filter(i => i.date >= startDate && i.date <= endDate);
             if (allInRange.length === 0) { section.classList.add('hidden'); return; }
 
-            const freq = {}, firstSeen = {}, lastSeen = {};
+            const groups = {};
             allInRange.forEach(a => {
-                const msg = a.message || '(kein Text)';
-                freq[msg] = (freq[msg] || 0) + 1;
+                const key = alarmGroupKey(a.message || '');
+                if (!groups[key]) groups[key] = {
+                    label: cleanAlarmLabel(a.message || '') || '(kein Text)',
+                    num: extractAlarmNumber(a.message || ''),
+                    count: 0, first: null, last: null
+                };
+                const g = groups[key];
+                g.count++;
                 const ts = a.date + ' ' + (a.time || '00:00:00');
-                if (!firstSeen[msg] || ts < firstSeen[msg]) firstSeen[msg] = ts;
-                if (!lastSeen[msg]  || ts > lastSeen[msg])  lastSeen[msg]  = ts;
+                if (!g.first || ts < g.first) g.first = ts;
+                if (!g.last  || ts > g.last)  g.last  = ts;
             });
 
             const totalCount = allInRange.length;
-            const sorted = Object.entries(freq).sort((a, b) => b[1] - a[1]);
+            const sorted = Object.values(groups).sort((a, b) => b.count - a.count);
 
-            const rows = sorted.map(([msg, cnt], i) => {
+            const rows = sorted.map((g, i) => {
+                const cnt = g.count;
                 const pct = ((cnt / totalCount) * 100).toFixed(1);
-                const first = firstSeen[msg] ? firstSeen[msg].substring(0, 10) : '–';
-                const last  = lastSeen[msg]  ? lastSeen[msg].substring(0, 10)  : '–';
-                const is8222 = msg.includes('8222');
-                const is8235 = msg.includes('8235');
+                const first = g.first ? g.first.substring(0, 10) : '–';
+                const last  = g.last  ? g.last.substring(0, 10)  : '–';
+                const is8222 = g.num === '8222';
+                const is8235 = g.num === '8235';
                 const rowBg = is8222 ? 'background:rgba(124,131,99,0.08)' : is8235 ? 'background:rgba(166,123,91,0.08)' : '';
                 return `<tr class="border-b border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700" style="${rowBg}">
                     <td class="py-1.5 px-2 text-xs text-slate-400 text-center">${i + 1}</td>
-                    <td class="py-1.5 px-2 text-xs text-slate-700 dark:text-slate-300">${esc(msg)}</td>
+                    <td class="py-1.5 px-2 text-xs text-slate-700 dark:text-slate-300">${esc(g.label)}</td>
                     <td class="py-1.5 px-2 text-xs text-slate-600 dark:text-slate-300 text-right tabular-nums font-medium">${cnt}</td>
                     <td class="py-1.5 px-2 text-xs text-slate-400 text-right tabular-nums">${pct}%</td>
                     <td class="py-1.5 px-2 text-xs text-slate-400 whitespace-nowrap">${fmtDate(first)}</td>
