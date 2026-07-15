@@ -94,12 +94,15 @@
         [data-tip]:hover::after { opacity: 1; }
 
         /* Deaktivierte Pills – abgedimmt, aber Tooltip bleibt voll sichtbar */
-        .toggle-line-btn.pill-inactive {
+        .toggle-line-btn.pill-inactive,
+        .debounce-pill.pill-inactive {
             opacity: 1;
             filter: saturate(0.3) brightness(1.15);
         }
-        .toggle-line-btn.pill-inactive::after { opacity: 0; }
-        .toggle-line-btn.pill-inactive:hover::after { opacity: 1; }
+        .toggle-line-btn.pill-inactive::after,
+        .debounce-pill.pill-inactive::after { opacity: 0; }
+        .toggle-line-btn.pill-inactive:hover::after,
+        .debounce-pill.pill-inactive:hover::after { opacity: 1; }
 
         /* ── KPI-Karten Akzentlinien ────────────────────────── */
         .kpi-indigo  { border-top: 4px solid #4f46e5; }
@@ -180,6 +183,8 @@
                             <li><strong>Alarm-Korrelation:</strong> &Uuml;ber den &quot;+&quot; Button weitere Alarme als Overlay-Balken hinzuschalten, um Zusammenh&auml;nge zu erkennen.</li>
                             <li><strong>Severity-3-Analyse:</strong> Die Severity-3-Kurve zeigt die t&auml;gliche Anzahl kritischer Alarme als Verlaufslinie.</li>
                             <li><strong>Alarm-Dropdown:</strong> Jeden beliebigen Alarm aus der Datei als Hauptalarm im Chart analysieren.</li>
+                            <li><strong>Heatmap Stunde &times; Wochentag:</strong> Auf einen Blick erkennen, an welchen Wochentagen und zu welchen Uhrzeiten sich Alarme h&auml;ufen.</li>
+                            <li><strong>Sender-Analyse:</strong> Der Sender (senderNode) ist die Quelle des Alarms &ndash; z. B. einzelne Boxen. Mehrere Boxen eines Systems k&ouml;nnen denselben Alarm erzeugen; die Sender-Analyse zeigt, welcher Sender wie oft meldet, um fehlerhafte Sender zu identifizieren. Manche Sender kommen nur einmalig im System vor (unique). Die Sektion erscheint automatisch, sobald die Datei mehr als einen Sender enth&auml;lt.</li>
                         </ul>
                     </div>
 
@@ -190,6 +195,7 @@
                             <li><strong>&quot;+&quot; Button:</strong> F&uuml;gt weitere Alarme als zus&auml;tzliche Balken im Chart hinzu (max. 5).</li>
                             <li><strong>&Oslash; gesamt / 7-Tage-&Oslash;:</strong> Durchschnittslinien ein-/ausblenden (nur f&uuml;r den ausgew&auml;hlten Alarm).</li>
                             <li><strong>Kritische Alarme:</strong> Kurve aller t&auml;glichen Severity-3-Alarme (systemweit) ein-/ausblenden.</li>
+                            <li><strong>&#9889; Entprellt:</strong> Bursts desselben Alarms vom selben Sender (Abstand &le; 5 min) als eine Episode z&auml;hlen &ndash; filtert &quot;Flattern&quot; (Chattering) aus den Zahlen. Im Tagesdetail werden Bursts immer zu einer Zeile mit Z&auml;hler geb&uuml;ndelt.</li>
                             <li><strong>Bereichsregler:</strong> Zwei Zeitbereiche w&auml;hlen und vergleichen inkl. Top-Alarme.</li>
                             <li><strong>Balken anklicken:</strong> Zeigt Detail-Liste aller kritischen Alarme des Tages (im AFS-Modus zus&auml;tzlich gruppiert nach 8222 und 8235).</li>
                             <li><strong>Export / PDF:</strong> Chart als PNG oder gesamte Analyse als PDF herunterladen.</li>
@@ -342,6 +348,11 @@
                                 class="toggle-line-btn active text-xs font-medium px-2.5 py-1 rounded-full border-2 border-slate-400 text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 shadow-sm hover:bg-slate-200 dark:hover:bg-slate-600 hover:scale-105 transition-all"
                                 data-tip="Alle Severity-3-Alarme&#10;systemweit (nicht nur ausgewählter Alarm).">
                                 ── Kritische Alarme
+                            </button>
+                            <button id="toggleDebounceBtn"
+                                class="debounce-pill pill-inactive text-xs px-2.5 py-1 rounded-full border border-teal-400 text-teal-600 bg-teal-50 dark:bg-teal-900/30 line-through hover:bg-teal-100 dark:hover:bg-teal-900/50 hover:scale-105 transition-all"
+                                data-tip="Entprellt: Bursts desselben Alarms&#10;vom selben Sender (Abstand ≤ 5 min)&#10;als eine Episode zählen statt einzeln.">
+                                ⚡ Entprellt
                             </button>
                         </div>
                     </div>
@@ -509,6 +520,46 @@
                     </div>
                 </div>
 
+                <!-- Heatmap: Stunde × Wochentag -->
+                <div id="heatmapSection" class="hidden mt-5">
+                    <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-md p-5 transition-colors">
+                        <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+                            <h3 class="text-sm font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-widest flex items-center gap-1.5">
+                                Heatmap – Stunde × Wochentag
+                                <span class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-slate-100 dark:bg-slate-600 text-slate-400 text-[10px] font-bold cursor-help leading-none" data-tip="Alarmanzahl je Wochentag und Stunde&#10;im gewählten Zeitraum.&#10;Je dunkler die Zelle, desto mehr Alarme.">?</span>
+                            </h3>
+                            <div class="flex gap-1.5" id="heatmapScopePills">
+                                <button data-scope="selected" class="heatmap-pill px-3 py-1 rounded-full text-xs font-medium border transition-colors bg-indigo-600 text-white border-indigo-600">Ausgewählter Alarm</button>
+                                <button data-scope="all" class="heatmap-pill px-3 py-1 rounded-full text-xs font-medium border transition-colors bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600 hover:border-indigo-300">Alle Alarme</button>
+                                <button data-scope="sev3" class="heatmap-pill px-3 py-1 rounded-full text-xs font-medium border transition-colors bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600 hover:border-indigo-300">Nur kritische</button>
+                            </div>
+                        </div>
+                        <div id="heatmapGrid" class="overflow-x-auto"></div>
+                    </div>
+                </div>
+
+                <!-- Sender-Analyse (Quelle der Alarme, v. a. AMS: mehrere Boxen je System) -->
+                <div id="senderSection" class="hidden mt-5">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-md p-5 transition-colors">
+                            <h3 class="text-sm font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-widest mb-1 flex items-center gap-1.5">
+                                Top-Sender
+                                <span class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-slate-100 dark:bg-slate-600 text-slate-400 text-[10px] font-bold cursor-help leading-none" data-tip="Sender (senderNode) = Quelle des Alarms,&#10;z. B. einzelne Boxen. Mehrere Boxen können&#10;denselben Alarm erzeugen – hier siehst du,&#10;welcher Sender am meisten meldet.&#10;Manche Sender sind systemweit unique.">?</span>
+                            </h3>
+                            <p id="senderTopRange" class="text-xs text-slate-400 mb-3"></p>
+                            <div id="senderTopList" class="overflow-y-auto max-h-72"></div>
+                        </div>
+                        <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-md p-5 transition-colors">
+                            <h3 class="text-sm font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-widest mb-1 flex items-center gap-1.5">
+                                Sender-Verteilung – <span id="senderSelAlarmLabel" class="text-indigo-600 dark:text-indigo-400 normal-case"></span>
+                                <span class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-slate-100 dark:bg-slate-600 text-slate-400 text-[10px] font-bold cursor-help leading-none" data-tip="Welcher Sender erzeugt den ausgewählten&#10;Alarm wie oft? So lassen sich besonders&#10;fehlerhafte Sender/Boxen identifizieren.">?</span>
+                            </h3>
+                            <p class="text-xs text-slate-400 mb-3">Vorkommen des Hauptalarms je Sender</p>
+                            <div id="senderAlarmBars" class="space-y-1.5 overflow-y-auto max-h-72"></div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Total Alarm Overview -->
                 <div id="totalAlarmOverview" class="hidden mt-5">
                     <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-md p-5 transition-colors">
@@ -629,6 +680,12 @@
 
         // Distribution chart refs managed via selHourRef, selWeekRef, allHourRef, allWeekRef
         let activeTrendDays = 7;
+
+        // Chattering/Entprellen: Vorkommen desselben Alarmtyps vom selben Sender
+        // mit ≤ 5 min Abstand gelten als ein Burst (eine Episode)
+        const BURST_GAP_MS = 5 * 60 * 1000;
+        let debounceActive = false;    // "⚡ Entprellt"-Toggle (Default: aus → Rohzahlen)
+        let heatmapScope = 'selected'; // Heatmap: 'selected' | 'all' | 'sev3'
 
         // Bereich 1 (orange) & Bereich 2 (teal)
         let sel1Start = null, sel1End = null;
@@ -777,6 +834,91 @@
         }
         function exportHeaderText() {
             return isDefaultAfsAlarm() ? MODES.AFS.exportHeader : `${analysisMode} Alarmanalyse – Alarm ${selectedAlarmFilter || '–'}`;
+        }
+
+        // ── Chattering-Helfer ────────────────────────────────────────────────────
+        function alarmTs(a) {
+            return new Date(a.date + 'T' + (a.time || '00:00:00')).getTime();
+        }
+
+        // Schlüssel für Burst-Bündelung: Alarmtyp + Sender. Derselbe Alarm von
+        // zwei verschiedenen Boxen (senderNode) ist KEIN gemeinsamer Burst.
+        function burstKey(a) {
+            return alarmGroupKey(a.message || '') + '|' + (a.senderNode || '');
+        }
+
+        // Bündelt aufeinanderfolgende Vorkommen desselben Alarmtyps vom selben
+        // Sender (Abstand ≤ BURST_GAP_MS) zu einer Zeile mit Zähler. Reine
+        // Darstellungshilfe fürs Tagesdetail – Roh-Zählungen bleiben unberührt.
+        function bundleBursts(alarms) {
+            const byKey = {};
+            alarms.forEach(a => {
+                const key = burstKey(a);
+                (byKey[key] = byKey[key] || []).push(a);
+            });
+            const rows = [];
+            Object.values(byKey).forEach(list => {
+                list.sort((a, b) => alarmTs(a) - alarmTs(b));
+                let cur = null;
+                list.forEach(a => {
+                    if (cur && alarmTs(a) - cur.lastTs <= BURST_GAP_MS) {
+                        cur.count++;
+                        cur.lastTs = alarmTs(a);
+                        cur.endTime = a.time;
+                    } else {
+                        if (cur) rows.push(cur);
+                        cur = { startTime: a.time, endTime: a.time, lastTs: alarmTs(a), senderNode: a.senderNode, message: a.message, count: 1 };
+                    }
+                });
+                if (cur) rows.push(cur);
+            });
+            rows.sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''));
+            return rows.map(r => ({
+                timeLabel: r.count > 1
+                    ? `${(r.startTime || '–').substring(0, 5)}–${(r.endTime || '–').substring(0, 5)}`
+                    : (r.startTime || '–'),
+                senderNode: r.senderNode, message: r.message, count: r.count
+            }));
+        }
+
+        // Episoden pro Tag zählen (für den "Entprellt"-Toggle): je Tag, Alarmtyp
+        // und Sender zählt eine Burst-Folge als eine Episode.
+        function countEpisodesPerDay(records) {
+            const byDayKey = {};
+            records.forEach(a => {
+                const k = a.date + '|' + burstKey(a);
+                (byDayKey[k] = byDayKey[k] || []).push(a);
+            });
+            const perDay = {};
+            Object.entries(byDayKey).forEach(([k, list]) => {
+                const date = k.split('|')[0];
+                list.sort((a, b) => alarmTs(a) - alarmTs(b));
+                let episodes = 0, lastTs = null;
+                list.forEach(a => {
+                    const ts = alarmTs(a);
+                    if (lastTs === null || ts - lastTs > BURST_GAP_MS) episodes++;
+                    lastTs = ts;
+                });
+                perDay[date] = (perDay[date] || 0) + episodes;
+            });
+            return perDay;
+        }
+
+        // Gesamtzahl der Episoden (statt Roh-Vorkommen) einer Alarm-Liste
+        function countEpisodesTotal(records) {
+            return Object.values(countEpisodesPerDay(records)).reduce((s, c) => s + c, 0);
+        }
+
+        // Tages-Zählung in eine vorinitialisierte Map schreiben:
+        // roh oder – bei aktivem "Entprellt" – als Burst-Episoden
+        function tallyDaily(records, dc) {
+            if (!debounceActive) {
+                records.forEach(i => { if (dc[i.date] !== undefined) dc[i.date]++; });
+            } else {
+                Object.entries(countEpisodesPerDay(records)).forEach(([d, c]) => {
+                    if (dc[d] !== undefined) dc[d] += c;
+                });
+            }
         }
 
         // ── Animations-Helfer ────────────────────────────────────────────────────
@@ -1015,37 +1157,37 @@
             // Hauptalarm: AFS-Default 8222 nutzt den historischen includes('8222')-
             // Datensatz (allAlarmsData), alle anderen Alarme (und der AMS-Modus
             // generell) die generische Filterung über allAlarmsDataSecond.
-            let filteredData;
-            if (isDefaultAfsAlarm()) {
-                filteredData = allAlarmsData.filter(i => i.date >= startDate && i.date <= endDate);
+            // Bei aktivem "Entprellt" werden Zeiten benötigt → dann einheitlich
+            // allAlarmsDataSecond (identische Datensätze, nur mit time-Feld).
+            let mainRecords;
+            if (isDefaultAfsAlarm() && !debounceActive) {
+                mainRecords = allAlarmsData.filter(i => i.date >= startDate && i.date <= endDate);
             } else {
-                filteredData = allAlarmsDataSecond
-                    .filter(i => i.date >= startDate && i.date <= endDate && extractAlarmNumber(i.message) === selectedAlarmFilter)
-                    .map(i => ({ date: i.date }));
+                mainRecords = allAlarmsDataSecond.filter(i =>
+                    i.date >= startDate && i.date <= endDate &&
+                    (isDefaultAfsAlarm() ? (i.message || '').includes('8222') : extractAlarmNumber(i.message) === selectedAlarmFilter));
             }
             const dailyCounts  = {};
             let cur = new Date(startDate + 'T00:00:00');
             const end = new Date(endDate + 'T00:00:00');
             while (cur <= end) { dailyCounts[formatDateToYYYYMMDD(cur)] = 0; cur.setDate(cur.getDate() + 1); }
-            filteredData.forEach(i => { if (dailyCounts[i.date] !== undefined) dailyCounts[i.date]++; });
+            tallyDaily(mainRecords, dailyCounts);
 
             chartLabels = Object.keys(dailyCounts).sort();
             chartCounts = chartLabels.map(d => dailyCounts[d]);
 
-            // Zusatz-Alarm Counts berechnen
+            // Zusatz-Alarm Counts berechnen (roh oder entprellt via tallyDaily)
             additionalAlarms.forEach(aa => {
                 const dc = {};
                 chartLabels.forEach(d => dc[d] = 0);
-                allAlarmsDataSecond.filter(i => i.date >= startDate && i.date <= endDate && extractAlarmNumber(i.message) === aa.alarmNum)
-                    .forEach(i => { if (dc[i.date] !== undefined) dc[i.date]++; });
+                tallyDaily(allAlarmsDataSecond.filter(i => i.date >= startDate && i.date <= endDate && extractAlarmNumber(i.message) === aa.alarmNum), dc);
                 aa.counts = chartLabels.map(d => dc[d]);
             });
 
-            // Severity-3 tägliche Counts
+            // Severity-3 tägliche Counts (roh oder entprellt via tallyDaily)
             const dailyCountsSev3 = {};
             chartLabels.forEach(d => dailyCountsSev3[d] = 0);
-            allAlarmsDataSecond.filter(i => i.date >= startDate && i.date <= endDate && i.severity === 3)
-                .forEach(i => { if (dailyCountsSev3[i.date] !== undefined) dailyCountsSev3[i.date]++; });
+            tallyDaily(allAlarmsDataSecond.filter(i => i.date >= startDate && i.date <= endDate && i.severity === 3), dailyCountsSev3);
             chartCountsSev3 = chartLabels.map(d => dailyCountsSev3[d]);
 
             const totalMain = chartCounts.reduce((s, c) => s + c, 0);
@@ -1096,6 +1238,8 @@
             renderChart(chartLabels, chartCounts, average, chartCountsSev3);
             initSliders();
             renderDistributionCharts(startDate, endDate);
+            renderHeatmap(startDate, endDate);
+            renderSenderAnalysis(startDate, endDate);
             renderAlarmOverview(startDate, endDate);
             renderAllDistributionCharts(startDate, endDate);
             renderTrendingAlarms(activeTrendDays);
@@ -1604,12 +1748,14 @@
             if (allGrouped.length === 0) {
                 content.innerHTML = '<p class="text-slate-400 italic text-xs p-2">Keine relevanten Alarme an diesem Tag.</p>';
             } else {
+                // Bursts (gleicher Alarm, gleicher Sender, Abstand ≤ 5 min) werden
+                // zu einer Zeile mit Zeitspanne + ×N-Badge gebündelt.
                 function buildRows(alarms, bgStyle) {
-                    return alarms.map(a =>
+                    return bundleBursts(alarms).map(r =>
                         `<tr class="border-b border-slate-100 dark:border-slate-700" style="${bgStyle}">
-                            <td class="py-1.5 px-2 text-slate-400 whitespace-nowrap text-xs">${a.time||'–'}</td>
-                            <td class="py-1.5 px-2 text-slate-500 dark:text-slate-400 whitespace-nowrap text-xs">${a.senderNode||'–'}</td>
-                            <td class="py-1.5 px-2 text-slate-700 dark:text-slate-200 text-xs">${esc(a.message)}</td>
+                            <td class="py-1.5 px-2 text-slate-400 whitespace-nowrap text-xs">${r.timeLabel}</td>
+                            <td class="py-1.5 px-2 text-slate-500 dark:text-slate-400 whitespace-nowrap text-xs">${esc(r.senderNode||'–')}</td>
+                            <td class="py-1.5 px-2 text-slate-700 dark:text-slate-200 text-xs">${esc(r.message)}${r.count > 1 ? ` <span class="inline-block bg-teal-100 dark:bg-teal-900/40 text-teal-700 dark:text-teal-300 px-1.5 py-0.5 rounded-full text-[10px] font-bold align-middle" title="Burst: ${r.count} Vorkommen innerhalb kurzer Zeit">×${r.count}</span>` : ''}</td>
                         </tr>`).join('');
                 }
                 const isDk = document.documentElement.classList.contains('dark');
@@ -1890,6 +2036,160 @@
             renderBarPair(hourCounts, dayCounts, 'hourlyChartAll', 'weekdayChartAll', allHourRef, allWeekRef, 'rgba(14, 165, 233, 0.7)');
             document.getElementById('distributionAllSection').classList.remove('hidden');
         }
+
+        // ── Heatmap: Stunde × Wochentag ─────────────────────────────────────────
+        function renderHeatmap(startDate, endDate) {
+            const section = document.getElementById('heatmapSection');
+            const grid = document.getElementById('heatmapGrid');
+            // Alarme ohne Uhrzeit können keiner Stunde zugeordnet werden
+            const inRange = allAlarmsDataSecond.filter(i => i.date >= startDate && i.date <= endDate && i.time);
+            if (inRange.length === 0) { section.classList.add('hidden'); return; }
+
+            const filtered = inRange.filter(i => {
+                if (heatmapScope === 'all') return true;
+                if (heatmapScope === 'sev3') return i.severity === 3;
+                // 'selected': gleiche Filterung wie die Verteilungs-Charts
+                if (isDefaultAfsAlarm()) return (i.message || '').includes('8222');
+                return extractAlarmNumber(i.message) === selectedAlarmFilter;
+            });
+
+            const dayNames = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
+            const matrix = Array.from({ length: 7 }, () => new Array(24).fill(0));
+            filtered.forEach(a => {
+                const h = parseInt(a.time.substring(0, 2), 10);
+                if (h < 0 || h > 23) return;
+                const jsDay = new Date(a.date + 'T00:00:00').getDay();
+                matrix[jsDay === 0 ? 6 : jsDay - 1][h]++;
+            });
+
+            const max = Math.max(...matrix.map(r => Math.max(...r)));
+            let html = '<table style="border-collapse:separate;border-spacing:2px"><thead><tr><th></th>';
+            for (let h = 0; h < 24; h++) html += `<th class="text-[9px] font-normal text-slate-400 px-0.5">${h}</th>`;
+            html += '</tr></thead><tbody>';
+            matrix.forEach((row, r) => {
+                html += `<tr><td class="text-[10px] font-medium text-slate-400 pr-1.5">${dayNames[r]}</td>`;
+                row.forEach((v, h) => {
+                    const intensity = max > 0 ? v / max : 0;
+                    const bg = v === 0 ? 'rgba(100,116,139,0.07)' : `rgba(79,70,229,${(0.15 + 0.75 * intensity).toFixed(2)})`;
+                    const light = intensity > 0.55;
+                    html += `<td class="text-center rounded" style="min-width:26px;height:22px;background:${bg}${light ? ';color:#fff' : ''}" title="${dayNames[r]} ${h}:00–${h + 1}:00 Uhr: ${v} Alarme"><span class="text-[9px]${light ? '' : ' text-slate-500 dark:text-slate-400'}">${v || ''}</span></td>`;
+                });
+                html += '</tr>';
+            });
+            html += '</tbody></table>';
+            grid.innerHTML = html;
+            section.classList.remove('hidden');
+        }
+
+        document.querySelectorAll('.heatmap-pill').forEach(btn => {
+            btn.addEventListener('click', () => {
+                heatmapScope = btn.dataset.scope;
+                document.querySelectorAll('.heatmap-pill').forEach(b => {
+                    const active = b === btn;
+                    b.classList.toggle('bg-indigo-600', active);
+                    b.classList.toggle('text-white', active);
+                    b.classList.toggle('border-indigo-600', active);
+                    b.classList.toggle('bg-white', !active);
+                    b.classList.toggle('dark:bg-slate-700', !active);
+                    b.classList.toggle('text-slate-600', !active);
+                    b.classList.toggle('dark:text-slate-300', !active);
+                    b.classList.toggle('border-slate-200', !active);
+                    b.classList.toggle('dark:border-slate-600', !active);
+                });
+                const s = document.getElementById('startDate').value;
+                const e = document.getElementById('endDate').value;
+                if (s && e) renderHeatmap(s, e);
+            });
+        });
+
+        // ── Sender-Analyse ──────────────────────────────────────────────────────
+        // senderNode = Quelle des Alarms (z. B. einzelne Boxen, v. a. bei AMS).
+        // Mehrere Boxen eines Systems können denselben Alarm erzeugen – hier wird
+        // sichtbar, WELCHER Sender wie oft meldet, um fehlerhafte Sender zu
+        // identifizieren. Manche Sender sind systemweit unique. Die Sektion
+        // erscheint datengetrieben nur, wenn der Zeitraum > 1 Sender enthält
+        // (AFS-Exporte haben i. d. R. nur die Anlage selbst als Sender).
+        function senderCount(list) {
+            return debounceActive ? countEpisodesTotal(list) : list.length;
+        }
+
+        function renderSenderAnalysis(startDate, endDate) {
+            const section = document.getElementById('senderSection');
+            const inRange = allAlarmsDataSecond.filter(i => i.date >= startDate && i.date <= endDate);
+            const senderSet = new Set(inRange.map(a => (a.senderNode || '').trim()).filter(Boolean));
+            if (senderSet.size <= 1) { section.classList.add('hidden'); return; }
+
+            // Panel 1: Top-Sender über alle Alarme (+ häufigster Alarm je Sender)
+            const bySender = {};
+            inRange.forEach(a => {
+                const s = (a.senderNode || '').trim() || '(unbekannt)';
+                (bySender[s] = bySender[s] || []).push(a);
+            });
+            const entries = Object.entries(bySender).map(([sender, list]) => {
+                const freq = {};
+                list.forEach(a => {
+                    const k = alarmGroupKey(a.message || '');
+                    if (!freq[k]) freq[k] = { label: cleanAlarmLabel(a.message || '') || '(kein Text)', count: 0 };
+                    freq[k].count++;
+                });
+                const top = Object.values(freq).sort((a, b) => b.count - a.count)[0];
+                return { sender, count: senderCount(list), topAlarm: top };
+            }).sort((a, b) => b.count - a.count);
+            const totalCount = entries.reduce((s, e) => s + e.count, 0);
+
+            document.getElementById('senderTopRange').textContent =
+                fmtDate(startDate) + ' – ' + fmtDate(endDate) + ' · ' + entries.length + ' Sender' + (debounceActive ? ' · entprellt' : '');
+            const rankClass = i => i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : 'rank-default';
+            document.getElementById('senderTopList').innerHTML = '<ul class="space-y-1">' + entries.slice(0, 10).map((e2, i) => {
+                const pct = totalCount > 0 ? ((e2.count / totalCount) * 100).toFixed(0) : 0;
+                return `<li class="flex items-start gap-2 px-2 py-1.5 rounded border text-xs ${rankClass(i)}">
+                    <span class="shrink-0 font-bold text-sm leading-tight">${i + 1}.</span>
+                    <span class="flex-1 leading-snug min-w-0"><span class="font-medium block truncate">${esc(e2.sender)}</span>
+                    <span class="text-[10px] opacity-70">häufigster Alarm: ${esc(e2.topAlarm ? e2.topAlarm.label : '–')} (${e2.topAlarm ? e2.topAlarm.count : 0}×)</span></span>
+                    <span class="shrink-0 font-bold tabular-nums">${e2.count}× <span class="font-normal opacity-60">(${pct}%)</span></span>
+                </li>`;
+            }).join('') + '</ul>';
+
+            // Panel 2: Vorkommen des Hauptalarms je Sender ("fehlerhafte Box" finden)
+            document.getElementById('senderSelAlarmLabel').textContent = 'Alarm ' + (selectedAlarmFilter || '–');
+            const mainList = inRange.filter(i =>
+                isDefaultAfsAlarm() ? (i.message || '').includes('8222') : extractAlarmNumber(i.message) === selectedAlarmFilter);
+            const perSender = {};
+            mainList.forEach(a => {
+                const s = (a.senderNode || '').trim() || '(unbekannt)';
+                (perSender[s] = perSender[s] || []).push(a);
+            });
+            const barData = Object.entries(perSender)
+                .map(([sender, list]) => ({ sender, count: senderCount(list) }))
+                .sort((a, b) => b.count - a.count);
+            const barsEl = document.getElementById('senderAlarmBars');
+            if (barData.length === 0) {
+                barsEl.innerHTML = '<p class="text-xs text-slate-400 italic">Keine Vorkommen des ausgewählten Alarms im Zeitraum.</p>';
+            } else {
+                const maxC = barData[0].count;
+                barsEl.innerHTML = barData.map(b => `
+                    <div class="flex items-center gap-2 text-xs">
+                        <span class="w-32 shrink-0 truncate text-slate-600 dark:text-slate-300" title="${esc(b.sender)}">${esc(b.sender)}</span>
+                        <div class="flex-1 bg-slate-100 dark:bg-slate-700 rounded h-4 overflow-hidden">
+                            <div class="h-full rounded" style="width:${maxC > 0 ? Math.max(2, (b.count / maxC) * 100) : 0}%;background:rgba(79,70,229,0.75)"></div>
+                        </div>
+                        <span class="w-10 shrink-0 text-right font-semibold tabular-nums text-slate-600 dark:text-slate-300">${b.count}×</span>
+                    </div>`).join('');
+            }
+            section.classList.remove('hidden');
+        }
+
+        // ── "⚡ Entprellt"-Toggle ────────────────────────────────────────────────
+        document.getElementById('toggleDebounceBtn').addEventListener('click', function () {
+            debounceActive = !debounceActive;
+            this.classList.toggle('pill-inactive', !debounceActive);
+            this.classList.toggle('line-through', !debounceActive);
+            this.classList.toggle('font-medium', debounceActive);
+            this.classList.toggle('shadow-sm', debounceActive);
+            const s = document.getElementById('startDate').value;
+            const e = document.getElementById('endDate').value;
+            if (dataMinDate && s && e) analyzeAndRender(s, e);
+        });
 
         // ── Export ────────────────────────────────────────────────────────────────
         document.getElementById('downloadChartBtn').addEventListener('click', () => {
