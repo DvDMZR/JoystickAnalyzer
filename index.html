@@ -233,7 +233,7 @@
                     </div>
                     <div class="flex items-start gap-3 bg-white dark:bg-slate-800 rounded-lg border border-slate-100 dark:border-slate-600 p-3">
                         <span class="shrink-0 w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs font-bold">2</span>
-                        <p class="text-sm text-slate-600">Alarme &ouml;ffnen, im <strong>'Fehlerursprung'</strong> <span id="instructionOrigin">AFS</span> eingeben</p>
+                        <p class="text-sm text-slate-600" id="instructionStep2">Alarme &ouml;ffnen, im <strong>'Fehlerursprung'</strong> AFS eingeben</p>
                     </div>
                     <div class="flex items-start gap-3 bg-white dark:bg-slate-800 rounded-lg border border-slate-100 dark:border-slate-600 p-3">
                         <span class="shrink-0 w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs font-bold">3</span>
@@ -637,7 +637,7 @@
                 defaultDatasetLabel: 'Joystick Use (Alarm 8222)',
                 exportBaseName: 'JoystickUse_8222',
                 exportHeader: 'Joystick Use – Alarm 8222',
-                instructionOrigin: 'AFS',
+                instructionStep2: 'Alarme öffnen, im <strong>\'Fehlerursprung\'</strong> AFS eingeben',
                 // Detail-Panel-Gruppen + Zeilen-Highlight (nur AFS)
                 specialAlarms: {
                     '8222': { name: 'Joystick Use',  header: 'rgba(124,131,99,0.25)', headerDark: 'rgba(124,131,99,0.20)', text: '#4a4f38', textDark: '#bdc5a0', rowBg: 'rgba(124,131,99,0.10)', overviewBg: 'rgba(124,131,99,0.08)' },
@@ -647,7 +647,9 @@
             AMS: {
                 title: 'AMS Performance Analyzer',
                 defaultAlarm: null, // dynamisch: Top-Riser der letzten 30 Tage
-                instructionOrigin: 'AMS',
+                // AMS hat keinen Pflicht-Filter nach Fehlerursprung; optional
+                // kann dort eine einzelne Box ausgewählt werden.
+                instructionStep2: 'Alarme öffnen – <strong>optional</strong> kann im <strong>\'Fehlerursprung\'</strong> eine bestimmte Box ausgewählt werden',
                 specialAlarms: {}   // keine hardcodierten Alarm-Regeln im AMS-Modus
             }
         };
@@ -2288,7 +2290,7 @@
             const cfg = modeCfg();
             document.title = cfg.title + ' v1.1';
             document.getElementById('appTitle').textContent = cfg.title;
-            document.getElementById('instructionOrigin').textContent = cfg.instructionOrigin;
+            document.getElementById('instructionStep2').innerHTML = cfg.instructionStep2;
             // AFS-spezifischer Hilfetext (8222) nur im AFS-Modus sichtbar
             document.getElementById('tutorialAfsSection').classList.toggle('hidden', analysisMode !== 'AFS');
             document.querySelectorAll('#modeToggle .mode-btn').forEach(btn => {
