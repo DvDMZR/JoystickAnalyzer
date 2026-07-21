@@ -1473,7 +1473,10 @@
                 renderRangeTopAlarms('cmpTop1', sel1Start, sel1End);
                 renderRangeTopAlarms('cmpTop2', sel2Start, sel2End);
             } else {
-                // Einzelner Bereich → Vergleich mit Gesamtzeitraum
+                // Einzelner Bereich → Vergleich mit Gesamtzeitraum.
+                // Die gewählte Range muss in die Spalte des tatsächlich aktiven
+                // Reglers geschrieben werden (isB1 → Spalte 1, sonst Spalte 2) –
+                // sonst tauchen Bereich-2-Werte unter der "Bereich 1"-Überschrift auf.
                 single.classList.add('hidden');
                 compare.classList.remove('hidden');
                 const isB1 = has1;
@@ -1482,27 +1485,31 @@
                 const fullStart = chartLabels[0];
                 const fullEnd   = chartLabels[chartLabels.length - 1];
 
-                // Bereich 1 = gewählter Bereich, Bereich 2 = Gesamt
-                const s1 = rangeStats(selStart, selEnd);
-                const s2 = rangeStats(fullStart, fullEnd);
-                document.getElementById('cmp1Range').textContent = fmtDate(selStart) + ' – ' + fmtDate(selEnd);
-                document.getElementById('cmp2Range').textContent = fmtDate(fullStart) + ' – ' + fmtDate(fullEnd) + ' (Gesamt)';
+                const selStats  = rangeStats(selStart, selEnd);
+                const fullStats = rangeStats(fullStart, fullEnd);
+                const selRangeText  = fmtDate(selStart) + ' – ' + fmtDate(selEnd);
+                const fullRangeText = fmtDate(fullStart) + ' – ' + fmtDate(fullEnd) + ' (Gesamt)';
+
+                const s1 = isB1 ? selStats : fullStats;
+                const s2 = isB1 ? fullStats : selStats;
+                document.getElementById('cmp1Range').textContent = isB1 ? selRangeText : fullRangeText;
+                document.getElementById('cmp2Range').textContent = isB1 ? fullRangeText : selRangeText;
                 document.getElementById('cmp1Total').textContent = s1.total;
                 document.getElementById('cmp2Total').textContent = s2.total;
                 document.getElementById('cmp1Avg').textContent = s1.avg.toFixed(1).replace('.', ',');
                 document.getElementById('cmp2Avg').textContent = s2.avg.toFixed(1).replace('.', ',');
                 document.getElementById('cmp1Days').textContent = s1.days;
                 document.getElementById('cmp2Days').textContent = s2.days;
-                const diff = s1.avg - s2.avg;
-                const pct  = s2.avg > 0 ? (diff / s2.avg) * 100 : 0;
+                const diff = selStats.avg - fullStats.avg;
+                const pct  = fullStats.avg > 0 ? (diff / fullStats.avg) * 100 : 0;
                 const sign = diff >= 0 ? '+' : '';
                 const diffEl = document.getElementById('cmpDiffValue');
                 diffEl.textContent = `${sign}${diff.toFixed(1).replace('.', ',')} (${sign}${pct.toFixed(0)} %)`;
                 diffEl.className = 'font-semibold ' + (diff > 0 ? 'text-red-500' : diff < 0 ? 'text-emerald-600' : 'text-slate-500');
 
                 // Top-Alarme
-                renderRangeTopAlarms('cmpTop1', selStart, selEnd);
-                renderRangeTopAlarms('cmpTop2', fullStart, fullEnd);
+                renderRangeTopAlarms(isB1 ? 'cmpTop1' : 'cmpTop2', selStart, selEnd);
+                renderRangeTopAlarms(isB1 ? 'cmpTop2' : 'cmpTop1', fullStart, fullEnd);
             }
         }
 
