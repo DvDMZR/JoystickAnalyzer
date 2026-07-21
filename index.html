@@ -94,12 +94,15 @@
         [data-tip]:hover::after { opacity: 1; }
 
         /* Deaktivierte Pills – abgedimmt, aber Tooltip bleibt voll sichtbar */
-        .toggle-line-btn.pill-inactive {
+        .toggle-line-btn.pill-inactive,
+        .debounce-pill.pill-inactive {
             opacity: 1;
             filter: saturate(0.3) brightness(1.15);
         }
-        .toggle-line-btn.pill-inactive::after { opacity: 0; }
-        .toggle-line-btn.pill-inactive:hover::after { opacity: 1; }
+        .toggle-line-btn.pill-inactive::after,
+        .debounce-pill.pill-inactive::after { opacity: 0; }
+        .toggle-line-btn.pill-inactive:hover::after,
+        .debounce-pill.pill-inactive:hover::after { opacity: 1; }
 
         /* ── KPI-Karten Akzentlinien ────────────────────────── */
         .kpi-indigo  { border-top: 4px solid #4f46e5; }
@@ -135,9 +138,14 @@
             <div class="flex items-center gap-4 py-4">
                 <!-- GEA Logo text + title -->
                 <div class="flex flex-col gap-0.5">
-                    <h1 style="color:#ffffff; font-size:1.05rem; font-weight:600; letter-spacing:0.01em; margin-top:2px;">AFS Performance Analyzer <span style="font-weight:400;font-size:0.75rem;opacity:0.6;">v1.1</span></h1>
+                    <h1 style="color:#ffffff; font-size:1.05rem; font-weight:600; letter-spacing:0.01em; margin-top:2px;"><span id="appTitle">AFS Performance Analyzer</span> <span style="font-weight:400;font-size:0.75rem;opacity:0.6;">v1.1</span></h1>
                 </div>
                 <div class="ml-auto flex items-center gap-2">
+                    <!-- Modus-Umschalter AFS/AMS (Default: AFS) -->
+                    <div id="modeToggle" class="flex items-center rounded-full bg-white/15 p-0.5 text-xs font-semibold" title="Analyse-Modus wählen">
+                        <button data-mode="AFS" class="mode-btn px-3 py-1 rounded-full text-white/70 hover:text-white transition-colors">AFS</button>
+                        <button data-mode="AMS" class="mode-btn px-3 py-1 rounded-full text-white/70 hover:text-white transition-colors">AMS</button>
+                    </div>
                     <button id="darkModeToggle" class="w-7 h-7 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center transition-colors" title="Dark Mode umschalten">
                         <svg id="iconSun" class="w-4 h-4 hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
                         <svg id="iconMoon" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
@@ -155,6 +163,12 @@
 
                 <div class="space-y-4 text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
                     <div>
+                        <h3 class="font-semibold text-slate-700 dark:text-slate-200 mb-1">Modus AFS / AMS</h3>
+                        <p>&Uuml;ber den Umschalter oben rechts w&auml;hlst du, ob eine <strong>AFS</strong>- (Feeding System) oder <strong>AMS</strong>-Anlage (Automated Milking System) analysiert wird. Im AFS-Modus steht der Alarm 8222 (Joystick Use) im Fokus; im AMS-Modus w&auml;hlt die App automatisch den Alarm mit dem h&ouml;chsten Anstieg der letzten 30 Tage als Hauptalarm.</p>
+                    </div>
+
+                    <!-- AFS-spezifischer Hilfetext – wird im AMS-Modus ausgeblendet -->
+                    <div id="tutorialAfsSection">
                         <h3 class="font-semibold text-slate-700 dark:text-slate-200 mb-1">Was ist der Joystick Use Alarm (8222)?</h3>
                         <p>Der Alarm 8222 (Joystick Use) ist ein wichtiger <strong>Indikator f&uuml;r Systemausf&auml;lle</strong> im AFS. Jedes Mal, wenn das System in den manuellen Joystick-Modus wechselt, deutet dies auf eine Unterbrechung des automatischen Betriebs hin. Die H&auml;ufigkeit dieses Alarms korreliert direkt mit der Systemverf&uuml;gbarkeit.</p>
                     </div>
@@ -169,18 +183,23 @@
                             <li><strong>Alarm-Korrelation:</strong> &Uuml;ber den &quot;+&quot; Button weitere Alarme als Overlay-Balken hinzuschalten, um Zusammenh&auml;nge zu erkennen.</li>
                             <li><strong>Severity-3-Analyse:</strong> Die Severity-3-Kurve zeigt die t&auml;gliche Anzahl kritischer Alarme als Verlaufslinie.</li>
                             <li><strong>Alarm-Dropdown:</strong> Jeden beliebigen Alarm aus der Datei als Hauptalarm im Chart analysieren.</li>
+                            <li><strong>Heatmap Stunde &times; Wochentag:</strong> Auf einen Blick erkennen, an welchen Wochentagen und zu welchen Uhrzeiten sich Alarme h&auml;ufen.</li>
+                            <li><strong>Sender-Analyse:</strong> Der Sender (senderNode) ist die Quelle des Alarms &ndash; z. B. einzelne Boxen. Mehrere Boxen eines Systems k&ouml;nnen denselben Alarm erzeugen; die Sender-Analyse zeigt, welcher Sender wie oft meldet, um fehlerhafte Sender zu identifizieren. Manche Sender kommen nur einmalig im System vor (unique). Die Sektion erscheint automatisch, sobald die Datei mehr als einen Sender enth&auml;lt.</li>
+                            <li><strong>Sender-Filter:</strong> Enth&auml;lt die Datei mehrere Sender, erscheint oben ein Dropdown, um die gesamte Auswertung auf einen einzelnen Sender einzuschr&auml;nken.</li>
+                            <li><strong>Duplikate ignorieren:</strong> Identische Zeilen (Datum, Zeit, Sender und Meldung) werden standardm&auml;&szlig;ig nur einmal gez&auml;hlt &ndash; abschaltbar &uuml;ber die Checkbox neben dem Sender-Filter.</li>
                         </ul>
                     </div>
 
                     <div>
                         <h3 class="font-semibold text-slate-700 dark:text-slate-200 mb-1">Bedienelemente</h3>
                         <ul class="list-disc ml-5 space-y-1">
-                            <li><strong>Alarm-Dropdown:</strong> W&auml;hlt den Hauptalarm f&uuml;r den Chart (Standard: 8222).</li>
+                            <li><strong>Alarm-Dropdown:</strong> W&auml;hlt den Hauptalarm f&uuml;r den Chart (AFS-Standard: 8222, AMS-Standard: st&auml;rkster Anstieg der letzten 30 Tage).</li>
                             <li><strong>&quot;+&quot; Button:</strong> F&uuml;gt weitere Alarme als zus&auml;tzliche Balken im Chart hinzu (max. 5).</li>
                             <li><strong>&Oslash; gesamt / 7-Tage-&Oslash;:</strong> Durchschnittslinien ein-/ausblenden (nur f&uuml;r den ausgew&auml;hlten Alarm).</li>
                             <li><strong>Kritische Alarme:</strong> Kurve aller t&auml;glichen Severity-3-Alarme (systemweit) ein-/ausblenden.</li>
+                            <li><strong>&#9889; Entprellt:</strong> Bursts desselben Alarms vom selben Sender (Abstand &le; 5 min) als eine Episode z&auml;hlen &ndash; filtert &quot;Flattern&quot; (Chattering) aus den Zahlen. Im Tagesdetail werden Bursts immer zu einer Zeile mit Z&auml;hler geb&uuml;ndelt.</li>
                             <li><strong>Bereichsregler:</strong> Zwei Zeitbereiche w&auml;hlen und vergleichen inkl. Top-Alarme.</li>
-                            <li><strong>Balken anklicken:</strong> Zeigt Detail-Liste des gew&auml;hlten Alarms, aktiver Overlays und aller kritischen Alarme des Tages.</li>
+                            <li><strong>Balken anklicken:</strong> Zeigt Detail-Liste aller kritischen Alarme des Tages (im AFS-Modus zus&auml;tzlich gruppiert nach 8222 und 8235).</li>
                             <li><strong>Export / PDF:</strong> Chart als PNG oder gesamte Analyse als PDF herunterladen.</li>
                         </ul>
                     </div>
@@ -216,7 +235,7 @@
                     </div>
                     <div class="flex items-start gap-3 bg-white dark:bg-slate-800 rounded-lg border border-slate-100 dark:border-slate-600 p-3">
                         <span class="shrink-0 w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs font-bold">2</span>
-                        <p class="text-sm text-slate-600">Alarme &ouml;ffnen, im <strong>'Fehlerursprung'</strong> AFS eingeben</p>
+                        <p class="text-sm text-slate-600" id="instructionStep2">Alarme &ouml;ffnen, im <strong>'Fehlerursprung'</strong> AFS eingeben</p>
                     </div>
                     <div class="flex items-start gap-3 bg-white dark:bg-slate-800 rounded-lg border border-slate-100 dark:border-slate-600 p-3">
                         <span class="shrink-0 w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs font-bold">3</span>
@@ -321,7 +340,6 @@
                         <div class="flex flex-wrap items-center gap-2 mb-2 min-h-[2.5rem]">
                             <h3 id="chartTitle" class="text-sm font-semibold text-slate-600 dark:text-slate-300 shrink-0">Joystick Use – Verlauf (Alarm 8222)</h3>
                             <select id="alarmSelect" class="text-xs border border-slate-200 dark:border-slate-600 rounded-md px-2 py-1 bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 focus:border-indigo-300 focus:outline-none cursor-pointer min-w-[340px] max-w-[520px]">
-                                <option value="8222">8222 (Default)</option>
                             </select>
                             <button id="addAlarmBtn" class="relative text-xs px-3 h-7 rounded-full border-2 border-dashed border-indigo-400 text-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 hover:border-indigo-500 hover:text-indigo-600 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors flex items-center justify-center font-bold shadow-sm" title="Alarm-Overlay hinzufügen">+</button>
                             <!-- Alarm-Auswahl Popover -->
@@ -345,6 +363,11 @@
                                 class="toggle-line-btn active text-xs font-medium px-2.5 py-1 rounded-full border-2 border-slate-400 text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 shadow-sm hover:bg-slate-200 dark:hover:bg-slate-600 hover:scale-105 transition-all"
                                 data-tip="Alle Severity-3-Alarme&#10;systemweit (nicht nur ausgewählter Alarm).">
                                 ── Kritische Alarme
+                            </button>
+                            <button id="toggleDebounceBtn"
+                                class="debounce-pill pill-inactive text-xs px-2.5 py-1 rounded-full border border-teal-400 text-teal-600 bg-teal-50 dark:bg-teal-900/30 line-through hover:bg-teal-100 dark:hover:bg-teal-900/50 hover:scale-105 transition-all"
+                                data-tip="Entprellt: Bursts desselben Alarms&#10;vom selben Sender (Abstand ≤ 5 min)&#10;als eine Episode zählen statt einzeln.">
+                                ⚡ Entprellt
                             </button>
                         </div>
                     </div>
@@ -512,6 +535,46 @@
                     </div>
                 </div>
 
+                <!-- Heatmap: Stunde × Wochentag -->
+                <div id="heatmapSection" class="hidden mt-5">
+                    <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-md p-5 transition-colors">
+                        <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+                            <h3 class="text-sm font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-widest flex items-center gap-1.5">
+                                Heatmap – Stunde × Wochentag
+                                <span class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-slate-100 dark:bg-slate-600 text-slate-400 text-[10px] font-bold cursor-help leading-none" data-tip="Alarmanzahl je Wochentag und Stunde&#10;im gewählten Zeitraum.&#10;Je dunkler die Zelle, desto mehr Alarme.">?</span>
+                            </h3>
+                            <div class="flex gap-1.5" id="heatmapScopePills">
+                                <button data-scope="selected" class="heatmap-pill px-3 py-1 rounded-full text-xs font-medium border transition-colors bg-indigo-600 text-white border-indigo-600">Ausgewählter Alarm</button>
+                                <button data-scope="all" class="heatmap-pill px-3 py-1 rounded-full text-xs font-medium border transition-colors bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600 hover:border-indigo-300">Alle Alarme</button>
+                                <button data-scope="sev3" class="heatmap-pill px-3 py-1 rounded-full text-xs font-medium border transition-colors bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600 hover:border-indigo-300">Nur kritische</button>
+                            </div>
+                        </div>
+                        <div id="heatmapGrid" class="overflow-x-auto"></div>
+                    </div>
+                </div>
+
+                <!-- Sender-Analyse (Quelle der Alarme, v. a. AMS: mehrere Boxen je System) -->
+                <div id="senderSection" class="hidden mt-5">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-md p-5 transition-colors">
+                            <h3 class="text-sm font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-widest mb-1 flex items-center gap-1.5">
+                                Top-Sender
+                                <span class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-slate-100 dark:bg-slate-600 text-slate-400 text-[10px] font-bold cursor-help leading-none" data-tip="Sender (senderNode) = Quelle des Alarms,&#10;z. B. einzelne Boxen. Mehrere Boxen können&#10;denselben Alarm erzeugen – hier siehst du,&#10;welcher Sender am meisten meldet.&#10;Manche Sender sind systemweit unique.">?</span>
+                            </h3>
+                            <p id="senderTopRange" class="text-xs text-slate-400 mb-3"></p>
+                            <div id="senderTopList" class="overflow-y-auto max-h-72"></div>
+                        </div>
+                        <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-md p-5 transition-colors">
+                            <h3 class="text-sm font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-widest mb-1 flex items-center gap-1.5">
+                                Sender-Verteilung – <span id="senderSelAlarmLabel" class="text-indigo-600 dark:text-indigo-400 normal-case"></span>
+                                <span class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-slate-100 dark:bg-slate-600 text-slate-400 text-[10px] font-bold cursor-help leading-none" data-tip="Welcher Sender erzeugt den ausgewählten&#10;Alarm wie oft? So lassen sich besonders&#10;fehlerhafte Sender/Boxen identifizieren.">?</span>
+                            </h3>
+                            <p class="text-xs text-slate-400 mb-3">Vorkommen des Hauptalarms je Sender</p>
+                            <div id="senderAlarmBars" class="space-y-1.5 overflow-y-auto max-h-72"></div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Total Alarm Overview -->
                 <div id="totalAlarmOverview" class="hidden mt-5">
                     <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-md p-5 transition-colors">
@@ -573,6 +636,43 @@
     (function () {
         'use strict';
 
+        // ── Modus-Konfiguration (AFS / AMS) ──────────────────────────────────────
+        // Alle fest hinterlegten Alarm-Regeln gelten AUSSCHLIESSLICH im AFS-Modus:
+        //   - Default-Hauptalarm 8222 (Joystick Use)
+        //   - Sondergruppierung/Highlight für 8222 und 8235 (Home POI Lok.)
+        // Im AMS-Modus gibt es KEINE fest hinterlegten Alarme; der Default-
+        // Hauptalarm wird dynamisch aus den Daten bestimmt (Alarm mit dem
+        // höchsten prozentualen Anstieg in den letzten 30 Tagen der Datei).
+        const MODES = {
+            AFS: {
+                title: 'AFS Performance Analyzer',
+                defaultAlarm: '8222',
+                defaultAlarmLabel: '8222 (Default)',
+                defaultChartTitle: 'Joystick Use – Verlauf (Alarm 8222)',
+                defaultDatasetLabel: 'Joystick Use (Alarm 8222)',
+                exportBaseName: 'JoystickUse_8222',
+                exportHeader: 'Joystick Use – Alarm 8222',
+                instructionStep2: 'Alarme öffnen, im <strong>\'Fehlerursprung\'</strong> AFS eingeben',
+                // Detail-Panel-Gruppen + Zeilen-Highlight (nur AFS)
+                specialAlarms: {
+                    '8222': { name: 'Joystick Use',  header: 'rgba(124,131,99,0.25)', headerDark: 'rgba(124,131,99,0.20)', text: '#4a4f38', textDark: '#bdc5a0', rowBg: 'rgba(124,131,99,0.10)', overviewBg: 'rgba(124,131,99,0.08)' },
+                    '8235': { name: 'Home POI Lok.', header: 'rgba(166,123,91,0.25)', headerDark: 'rgba(166,123,91,0.20)', text: '#6b4c33', textDark: '#d4a882', rowBg: 'rgba(166,123,91,0.10)', overviewBg: 'rgba(166,123,91,0.08)' }
+                }
+            },
+            AMS: {
+                title: 'AMS Performance Analyzer',
+                defaultAlarm: null, // dynamisch: Top-Riser der letzten 30 Tage
+                // AMS hat keinen Pflicht-Filter nach Fehlerursprung; optional
+                // kann dort eine einzelne Box ausgewählt werden.
+                instructionStep2: 'Alarme öffnen – <strong>optional</strong> kann im <strong>\'Fehlerursprung\'</strong> eine bestimmte Box ausgewählt werden',
+                specialAlarms: {}   // keine hardcodierten Alarm-Regeln im AMS-Modus
+            }
+        };
+        let analysisMode = localStorage.getItem('analysisMode') === 'AMS' ? 'AMS' : 'AFS'; // Default: AFS
+        const modeCfg = () => MODES[analysisMode];
+        // true, wenn der AFS-Default-Alarm 8222 aktiv ist
+        const isDefaultAfsAlarm = () => analysisMode === 'AFS' && selectedAlarmFilter === '8222';
+
         let rawAlarmRows        = [];  // alle geparsten Zeilen (vor Dedup/Senderfilter)
         let duplicateCount      = 0;
         let allAlarmsDataSecond = [];  // aktiver Datensatz (nach Dedup + Senderfilter)
@@ -582,7 +682,7 @@
         let chartCountsSev3 = [];
         let dataMinDate = null;
         let dataMaxDate = null;
-        let selectedAlarmFilter = '8222'; // default
+        let selectedAlarmFilter = null;   // Hauptalarm im Chart (modusabhängiger Default)
         let availableAlarms = [];         // unique alarm messages from file
 
         // Multi-Alarm Overlay System
@@ -597,6 +697,12 @@
 
         // Distribution chart refs managed via selHourRef, selWeekRef, allHourRef, allWeekRef
         let activeTrendDays = 7;
+
+        // Chattering/Entprellen: Vorkommen desselben Alarmtyps vom selben Sender
+        // mit ≤ 5 min Abstand gelten als ein Burst (eine Episode)
+        const BURST_GAP_MS = 5 * 60 * 1000;
+        let debounceActive = false;    // "⚡ Entprellt"-Toggle (Default: aus → Rohzahlen)
+        let heatmapScope = 'selected'; // Heatmap: 'selected' | 'all' | 'sev3'
 
         // Bereich 1 (orange) & Bereich 2 (teal)
         let sel1Start = null, sel1End = null;
@@ -629,13 +735,206 @@
         function alarmGroupKey(msg) {
             return extractAlarmNumber(msg) || cleanAlarmLabel(msg) || '(kein Text)';
         }
+
+        // ── Modus-Helfer ─────────────────────────────────────────────────────────
+        // Steigende Alarme in [startDate, endDate]: Zeitraum halbieren, Tages-
+        // durchschnitt beider Hälften vergleichen. Wird vom Trend-Panel und vom
+        // AMS-Default (Top-Riser) gemeinsam genutzt.
+        function computeRisingAlarms(startDate, endDate) {
+            const alarms = allAlarmsDataSecond.filter(i => i.date >= startDate && i.date <= endDate);
+            if (alarms.length === 0) return [];
+
+            // Kalendertage im Bereich berechnen + Mittelpunkt
+            const totalDays = Math.round((new Date(endDate + 'T00:00:00') - new Date(startDate + 'T00:00:00')) / 86400000) + 1;
+            const halfDays = Math.floor(totalDays / 2);
+            const d1 = Math.max(1, halfDays);
+            const d2 = Math.max(1, totalDays - halfDays);
+            const midDate = subtractDays(endDate, d2 - 1);
+
+            // Pro Alarm-NUMMER gruppieren (nicht voller Text)
+            const numData = {};
+            alarms.forEach(a => {
+                const num = extractAlarmNumber(a.message);
+                if (!num) return;
+                if (!numData[num]) numData[num] = { label: cleanAlarmLabel(a.message), c1: 0, c2: 0 };
+                if (a.date < midDate) numData[num].c1++;
+                else numData[num].c2++;
+            });
+
+            // Steigende Alarme berechnen
+            const rising = [];
+            Object.entries(numData).forEach(([num, d]) => {
+                const avg1 = d.c1 / d1;
+                const avg2 = d.c2 / d2;
+                const total = d.c1 + d.c2;
+                if (avg2 > avg1 && avg1 > 0) {
+                    rising.push({ num, label: d.label, count: total, avg1, avg2, pct: ((avg2 - avg1) / avg1) * 100 });
+                } else if (avg2 > 0 && avg1 === 0) {
+                    rising.push({ num, label: d.label, count: d.c2, avg1: 0, avg2, pct: Infinity });
+                }
+            });
+
+            // Sortierung: echte %-Steigerung absteigend, "neu" (Infinity) dahinter nach Count
+            rising.sort((a, b) => {
+                const aNew = a.pct === Infinity ? 1 : 0;
+                const bNew = b.pct === Infinity ? 1 : 0;
+                if (aNew !== bNew) return aNew - bNew; // echte % zuerst, "neu" nach hinten
+                if (aNew && bNew) return b.count - a.count; // bei "neu" nach Count sortieren
+                return b.pct - a.pct; // sonst nach % absteigend
+            });
+            return rising;
+        }
+
+        // Alarm mit dem höchsten prozentualen Anstieg der letzten `days` Tage der Datei
+        function pickTopRisingAlarm(days) {
+            if (!dataMaxDate) return null;
+            const start = subtractDays(dataMaxDate, days - 1);
+            const clamped = (dataMinDate && start < dataMinDate) ? dataMinDate : start;
+            const rising = computeRisingAlarms(clamped, dataMaxDate);
+            return rising.length > 0 ? rising[0].num : null;
+        }
+
+        function pickMostFrequentAlarm() {
+            const freq = {};
+            allAlarmsDataSecond.forEach(a => {
+                const num = extractAlarmNumber(a.message);
+                if (num) freq[num] = (freq[num] || 0) + 1;
+            });
+            const top = Object.entries(freq).sort((a, b) => b[1] - a[1])[0];
+            return top ? top[0] : null;
+        }
+
+        // Default-Hauptalarm je Modus:
+        //  - AFS: fest 8222 (AFS-Regel)
+        //  - AMS: Top-Riser der letzten 30 Tage; Fallback: häufigster Alarm
+        function determineDefaultAlarm() {
+            if (modeCfg().defaultAlarm) return modeCfg().defaultAlarm;
+            return pickTopRisingAlarm(30)
+                || pickMostFrequentAlarm()
+                || (availableAlarms[0] ? availableAlarms[0][0] : null);
+        }
+
+        // Dropdown je Modus aufbauen. AFS-Regel: 8222 steht als Default immer an
+        // erster Stelle (auch wenn nicht in der Datei). Im AMS-Modus erscheint
+        // 8222 nur als normaler Eintrag, falls in der Datei vorhanden.
+        function rebuildAlarmDropdown() {
+            const sel = document.getElementById('alarmSelect');
+            sel.innerHTML = '';
+            if (analysisMode === 'AFS') {
+                const opt = document.createElement('option');
+                opt.value = MODES.AFS.defaultAlarm;
+                opt.textContent = MODES.AFS.defaultAlarmLabel;
+                sel.appendChild(opt);
+            }
+            availableAlarms.forEach(([num, label]) => {
+                if (analysisMode === 'AFS' && num === MODES.AFS.defaultAlarm) return;
+                const opt = document.createElement('option');
+                opt.value = num;
+                opt.textContent = label;
+                sel.appendChild(opt);
+            });
+            if (selectedAlarmFilter) sel.value = selectedAlarmFilter;
+        }
+
         function updateChartTitle() {
-            if (selectedAlarmFilter === '8222') {
-                document.getElementById('chartTitle').textContent = 'Joystick Use – Verlauf (Alarm 8222)';
+            const titleEl = document.getElementById('chartTitle');
+            if (isDefaultAfsAlarm()) { titleEl.textContent = MODES.AFS.defaultChartTitle; return; }
+            const sel = document.getElementById('alarmSelect');
+            const optText = sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].textContent : (selectedAlarmFilter || '');
+            titleEl.textContent = 'Verlauf – ' + optText;
+        }
+
+        // Basisname/Kopfzeile für PNG-/PDF-Export: AFS-Default behält den
+        // historischen Namen, sonst Modus + aktueller Hauptalarm
+        function exportFileBase() {
+            return isDefaultAfsAlarm() ? MODES.AFS.exportBaseName : `${analysisMode}_Alarm_${selectedAlarmFilter || 'Analyse'}`;
+        }
+        function exportHeaderText() {
+            return isDefaultAfsAlarm() ? MODES.AFS.exportHeader : `${analysisMode} Alarmanalyse – Alarm ${selectedAlarmFilter || '–'}`;
+        }
+
+        // ── Chattering-Helfer ────────────────────────────────────────────────────
+        function alarmTs(a) {
+            return new Date(a.date + 'T' + (a.time || '00:00:00')).getTime();
+        }
+
+        // Schlüssel für Burst-Bündelung: Alarmtyp + Sender. Derselbe Alarm von
+        // zwei verschiedenen Boxen (senderNode) ist KEIN gemeinsamer Burst.
+        function burstKey(a) {
+            return alarmGroupKey(a.message || '') + '|' + (a.senderNode || '');
+        }
+
+        // Bündelt aufeinanderfolgende Vorkommen desselben Alarmtyps vom selben
+        // Sender (Abstand ≤ BURST_GAP_MS) zu einer Zeile mit Zähler. Reine
+        // Darstellungshilfe fürs Tagesdetail – Roh-Zählungen bleiben unberührt.
+        function bundleBursts(alarms) {
+            const byKey = {};
+            alarms.forEach(a => {
+                const key = burstKey(a);
+                (byKey[key] = byKey[key] || []).push(a);
+            });
+            const rows = [];
+            Object.values(byKey).forEach(list => {
+                list.sort((a, b) => alarmTs(a) - alarmTs(b));
+                let cur = null;
+                list.forEach(a => {
+                    if (cur && alarmTs(a) - cur.lastTs <= BURST_GAP_MS) {
+                        cur.count++;
+                        cur.lastTs = alarmTs(a);
+                        cur.endTime = a.time;
+                    } else {
+                        if (cur) rows.push(cur);
+                        cur = { startTime: a.time, endTime: a.time, lastTs: alarmTs(a), senderNode: a.senderNode, message: a.message, count: 1 };
+                    }
+                });
+                if (cur) rows.push(cur);
+            });
+            rows.sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''));
+            return rows.map(r => ({
+                timeLabel: r.count > 1
+                    ? `${(r.startTime || '–').substring(0, 5)}–${(r.endTime || '–').substring(0, 5)}`
+                    : (r.startTime || '–'),
+                senderNode: r.senderNode, message: r.message, count: r.count
+            }));
+        }
+
+        // Episoden pro Tag zählen (für den "Entprellt"-Toggle): je Tag, Alarmtyp
+        // und Sender zählt eine Burst-Folge als eine Episode.
+        function countEpisodesPerDay(records) {
+            const byDayKey = {};
+            records.forEach(a => {
+                const k = a.date + '|' + burstKey(a);
+                (byDayKey[k] = byDayKey[k] || []).push(a);
+            });
+            const perDay = {};
+            Object.entries(byDayKey).forEach(([k, list]) => {
+                const date = k.split('|')[0];
+                list.sort((a, b) => alarmTs(a) - alarmTs(b));
+                let episodes = 0, lastTs = null;
+                list.forEach(a => {
+                    const ts = alarmTs(a);
+                    if (lastTs === null || ts - lastTs > BURST_GAP_MS) episodes++;
+                    lastTs = ts;
+                });
+                perDay[date] = (perDay[date] || 0) + episodes;
+            });
+            return perDay;
+        }
+
+        // Gesamtzahl der Episoden (statt Roh-Vorkommen) einer Alarm-Liste
+        function countEpisodesTotal(records) {
+            return Object.values(countEpisodesPerDay(records)).reduce((s, c) => s + c, 0);
+        }
+
+        // Tages-Zählung in eine vorinitialisierte Map schreiben:
+        // roh oder – bei aktivem "Entprellt" – als Burst-Episoden
+        function tallyDaily(records, dc) {
+            if (!debounceActive) {
+                records.forEach(i => { if (dc[i.date] !== undefined) dc[i.date]++; });
             } else {
-                const sel = document.getElementById('alarmSelect');
-                const optText = sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].textContent : selectedAlarmFilter;
-                document.getElementById('chartTitle').textContent = 'Verlauf – ' + optText;
+                Object.entries(countEpisodesPerDay(records)).forEach(([d, c]) => {
+                    if (dc[d] !== undefined) dc[d] += c;
+                });
             }
         }
 
@@ -795,7 +1094,8 @@
         // ── Hauptdatei verarbeiten ────────────────────────────────────────────────
         function processExcelData(data, anlagenNameFromFile) {
             rawAlarmRows = data.map(row => {
-                // Datum: erstes Feld nehmen, das ein gültiges Datum liefert
+                // Datum: erstes Feld nehmen, das ein gültiges Datum liefert (Exporte
+                // mit getrennten Datums-/Zeitspalten dürfen nicht alle Zeilen verlieren)
                 const date = formatDateToYYYYMMDD(row.alarmTime) || formatDateToYYYYMMDD(row.alarmDate);
                 let timeStr = '';
                 for (const rawTime of [row.alarmTime, row.alarmDate]) {
@@ -836,7 +1136,7 @@
             document.getElementById('senderRow').classList.toggle('hidden', senders.length < 2);
 
             document.getElementById('dedupToggle').checked = true;
-            selectedAlarmFilter = '8222';
+            selectedAlarmFilter = null;
             rebuildDataset(true);
         }
 
@@ -867,7 +1167,7 @@
             }
             hideError();
 
-            // 3) Alarm-Dropdown neu aufbauen; Auswahl beibehalten wenn möglich
+            // 3) Alarm-Nummern für Dropdown sammeln; Auswahl beibehalten wenn möglich
             const alarmMap = new Map();
             allAlarmsDataSecond.forEach(a => {
                 const num = extractAlarmNumber(a.message);
@@ -875,28 +1175,23 @@
                 if (!alarmMap.has(num)) alarmMap.set(num, cleanAlarmLabel(a.message));
             });
             availableAlarms = [...alarmMap.entries()].sort((a, b) => a[0].localeCompare(b[0], undefined, { numeric: true }));
-            if (!alarmMap.has(selectedAlarmFilter)) {
-                selectedAlarmFilter = alarmMap.has('8222') ? '8222' : (availableAlarms.length ? availableAlarms[0][0] : '8222');
-            }
-            const sel = document.getElementById('alarmSelect');
-            sel.innerHTML = '';
-            availableAlarms.forEach(([num, label]) => {
-                const opt = document.createElement('option');
-                opt.value = num;
-                opt.textContent = num === '8222' ? label + ' (Default)' : label;
-                sel.appendChild(opt);
-            });
-            sel.value = selectedAlarmFilter;
-            additionalAlarms = additionalAlarms.filter(a => alarmMap.has(a.alarmNum) && a.alarmNum !== selectedAlarmFilter);
-            renderAdditionalAlarmChips();
-            updateChartTitle();
 
-            // 4) Zeitraum bestimmen
+            // 4) Zeitraum bestimmen (vor determineDefaultAlarm(), das AMS-seitig darauf zugreift)
             const allDates = [...new Set(allAlarmsDataSecond.map(i => i.date))].sort();
             dataMinDate = allDates[0];
             dataMaxDate = allDates[allDates.length - 1];
             const todayStr = formatDateToYYYYMMDD(new Date());
             document.getElementById('totalDateRange').textContent = fmtDate(dataMinDate) + ' – ' + fmtDate(dataMaxDate);
+
+            // 5) Modusabhängigen Hauptalarm bestimmen + Dropdown aufbauen
+            // (AFS: fest 8222; AMS: Alarm mit höchstem Anstieg der letzten 30 Tage)
+            if (!selectedAlarmFilter || !alarmMap.has(selectedAlarmFilter)) {
+                selectedAlarmFilter = determineDefaultAlarm();
+            }
+            rebuildAlarmDropdown();
+            additionalAlarms = additionalAlarms.filter(a => alarmMap.has(a.alarmNum) && a.alarmNum !== selectedAlarmFilter);
+            renderAdditionalAlarmChips();
+            updateChartTitle();
 
             const analysisEl = document.getElementById('analysisSection');
             analysisEl.classList.remove('hidden');
@@ -908,6 +1203,8 @@
                 analysisEl.classList.add('fade-in');
                 setActivePreset(document.querySelector('.preset-btn[data-days="30"]'));
                 document.getElementById('customDateRow').classList.add('hidden');
+                document.getElementById('startDate').value = dataMinDate;
+                document.getElementById('endDate').value = todayStr;
                 endStr   = (dataMaxDate < todayStr) ? dataMaxDate : todayStr;
                 startStr = subtractDays(endStr, 29);
                 if (startStr < dataMinDate) startStr = dataMinDate;
@@ -940,32 +1237,31 @@
             // Datumfelder immer synchron halten (damit Alarm-Dropdown den aktuellen Bereich nutzt)
             document.getElementById('startDate').value = startDate;
             document.getElementById('endDate').value   = endDate;
-            // Hauptalarm: immer über die Alarmnummer erkannt (kein Substring-Match)
-            const filteredData = allAlarmsDataSecond
-                .filter(i => i.date >= startDate && i.date <= endDate && extractAlarmNumber(i.message) === selectedAlarmFilter);
+            // Hauptalarm: immer über die Alarmnummer erkannt (kein Substring-Match,
+            // sonst würde z. B. "18222: ..." fälschlich als 8222 mitgezählt).
+            const mainRecords = allAlarmsDataSecond.filter(i =>
+                i.date >= startDate && i.date <= endDate && extractAlarmNumber(i.message) === selectedAlarmFilter);
             const dailyCounts  = {};
             let cur = new Date(startDate + 'T00:00:00');
             const end = new Date(endDate + 'T00:00:00');
             while (cur <= end) { dailyCounts[formatDateToYYYYMMDD(cur)] = 0; cur.setDate(cur.getDate() + 1); }
-            filteredData.forEach(i => { if (dailyCounts[i.date] !== undefined) dailyCounts[i.date]++; });
+            tallyDaily(mainRecords, dailyCounts);
 
             chartLabels = Object.keys(dailyCounts).sort();
             chartCounts = chartLabels.map(d => dailyCounts[d]);
 
-            // Zusatz-Alarm Counts berechnen
+            // Zusatz-Alarm Counts berechnen (roh oder entprellt via tallyDaily)
             additionalAlarms.forEach(aa => {
                 const dc = {};
                 chartLabels.forEach(d => dc[d] = 0);
-                allAlarmsDataSecond.filter(i => i.date >= startDate && i.date <= endDate && extractAlarmNumber(i.message) === aa.alarmNum)
-                    .forEach(i => { if (dc[i.date] !== undefined) dc[i.date]++; });
+                tallyDaily(allAlarmsDataSecond.filter(i => i.date >= startDate && i.date <= endDate && extractAlarmNumber(i.message) === aa.alarmNum), dc);
                 aa.counts = chartLabels.map(d => dc[d]);
             });
 
-            // Severity-3 tägliche Counts
+            // Severity-3 tägliche Counts (roh oder entprellt via tallyDaily)
             const dailyCountsSev3 = {};
             chartLabels.forEach(d => dailyCountsSev3[d] = 0);
-            allAlarmsDataSecond.filter(i => i.date >= startDate && i.date <= endDate && i.severity === 3)
-                .forEach(i => { if (dailyCountsSev3[i.date] !== undefined) dailyCountsSev3[i.date]++; });
+            tallyDaily(allAlarmsDataSecond.filter(i => i.date >= startDate && i.date <= endDate && i.severity === 3), dailyCountsSev3);
             chartCountsSev3 = chartLabels.map(d => dailyCountsSev3[d]);
 
             const totalMain = chartCounts.reduce((s, c) => s + c, 0);
@@ -1016,6 +1312,8 @@
             renderChart(chartLabels, chartCounts, average, chartCountsSev3);
             initSliders();
             renderDistributionCharts(startDate, endDate);
+            renderHeatmap(startDate, endDate);
+            renderSenderAnalysis(startDate, endDate);
             renderAlarmOverview(startDate, endDate);
             renderAllDistributionCharts(startDate, endDate);
             renderTrendingAlarms(activeTrendDays);
@@ -1071,7 +1369,8 @@
         }
 
         // Linien-Sichtbarkeit aus dem Pill-Zustand ableiten, damit Chart-Neuaufbauten
-        // (Alarmwechsel, Overlays, Dedup/Senderfilter) die Toggles nicht zurücksetzen
+        // (Alarmwechsel, Overlays, Dedup/Senderfilter, Modus-Wechsel) die Toggles
+        // nicht auf den Default zurücksetzen
         function pillHidden(idx) {
             const btn = document.querySelector(`.toggle-line-btn[data-idx="${idx}"]`);
             return btn ? btn.classList.contains('pill-inactive') : true;
@@ -1121,7 +1420,7 @@
 
             const baseDatasets = [
                 {
-                    label: selectedAlarmFilter === '8222' ? 'Joystick Use (Alarm 8222)' : (document.getElementById('alarmSelect').options[document.getElementById('alarmSelect').selectedIndex]?.textContent || selectedAlarmFilter),
+                    label: isDefaultAfsAlarm() ? MODES.AFS.defaultDatasetLabel : (document.getElementById('alarmSelect').options[document.getElementById('alarmSelect').selectedIndex]?.textContent || selectedAlarmFilter),
                     data, backgroundColor: colors,
                     borderWidth: 0, borderRadius: 0,
                     barThickness: barThick,
@@ -1513,7 +1812,10 @@
             }
         }
 
-        // ── Alarmdetail (gewählter Alarm, Overlays, kritische Alarme) ────────────
+        // ── Alarmdetail (Severity 3 + modusabhängige Sondergruppen) ─────────────
+        // AFS-Regel: 8222/8235 werden nur im AFS-Modus als eigene Gruppen
+        // ausgewiesen (modeCfg().specialAlarms); im AMS-Modus gibt es
+        // ausschließlich die Gruppe "Kritische Alarme".
         function showDayDetail(dateStr) {
             const panel    = document.getElementById('detailPanel');
             const content  = document.getElementById('detailContent');
@@ -1523,45 +1825,47 @@
             freqDiv.innerHTML = '';
 
             const dayAlarms = allAlarmsDataSecond.filter(i => i.date === dateStr);
+            const specialGroups = Object.entries(modeCfg().specialAlarms).map(([num, cfg]) => ({
+                num, cfg,
+                alarms: dayAlarms.filter(a => extractAlarmNumber(a.message) === num)
+            }));
+            const seenSpecial = new Set(specialGroups.flatMap(g => g.alarms.map(a => `${a.time}|${a.message}`)));
+            const sev3Only = dayAlarms.filter(a => a.severity === 3 && !seenSpecial.has(`${a.time}|${a.message}`));
 
-            // Gruppen: Hauptalarm + aktive Overlays + übrige kritische Alarme
-            const claimed = new Set();
-            const groups = [];
-            function addGroup(num, title, colorPrefix) {
-                const items = dayAlarms.filter(a => extractAlarmNumber(a.message) === num);
-                items.forEach(a => claimed.add(a));
-                if (items.length > 0) groups.push({ title: `${title} (${items.length})`, items, colorPrefix });
-            }
-            const mainEntry = availableAlarms.find(([n]) => n === selectedAlarmFilter);
-            addGroup(selectedAlarmFilter, mainEntry ? mainEntry[1] : 'Alarm ' + selectedAlarmFilter, 'rgba(124,131,99,');
-            additionalAlarms.forEach(aa => addGroup(aa.alarmNum, aa.label, aa.color.replace(/[\d.]+\)$/, '')));
-            const sev3Only = dayAlarms.filter(a => a.severity === 3 && !claimed.has(a));
-            if (sev3Only.length > 0) groups.unshift({ title: `Weitere kritische Alarme (${sev3Only.length})`, items: sev3Only, colorPrefix: 'rgba(100,116,139,' });
-
-            const allGrouped = groups.flatMap(g => g.items);
+            const allGrouped = [...sev3Only, ...specialGroups.flatMap(g => g.alarms)];
             if (allGrouped.length === 0) {
                 content.innerHTML = '<p class="text-slate-400 italic text-xs p-2">Keine relevanten Alarme an diesem Tag.</p>';
             } else {
+                // Bursts (gleicher Alarm, gleicher Sender, Abstand ≤ 5 min) werden
+                // zu einer Zeile mit Zeitspanne + ×N-Badge gebündelt.
                 function buildRows(alarms, bgStyle) {
-                    return alarms.map(a =>
+                    return bundleBursts(alarms).map(r =>
                         `<tr class="border-b border-slate-100 dark:border-slate-700" style="${bgStyle}">
-                            <td class="py-1.5 px-2 text-slate-400 whitespace-nowrap text-xs">${a.time||'–'}</td>
-                            <td class="py-1.5 px-2 text-slate-500 dark:text-slate-400 whitespace-nowrap text-xs">${a.senderNode||'–'}</td>
-                            <td class="py-1.5 px-2 text-slate-700 dark:text-slate-200 text-xs">${esc(a.message)}</td>
+                            <td class="py-1.5 px-2 text-slate-400 whitespace-nowrap text-xs">${r.timeLabel}</td>
+                            <td class="py-1.5 px-2 text-slate-500 dark:text-slate-400 whitespace-nowrap text-xs">${esc(r.senderNode||'–')}</td>
+                            <td class="py-1.5 px-2 text-slate-700 dark:text-slate-200 text-xs">${esc(r.message)}${r.count > 1 ? ` <span class="inline-block bg-teal-100 dark:bg-teal-900/40 text-teal-700 dark:text-teal-300 px-1.5 py-0.5 rounded-full text-[10px] font-bold align-middle" title="Burst: ${r.count} Vorkommen innerhalb kurzer Zeit">×${r.count}</span>` : ''}</td>
                         </tr>`).join('');
                 }
                 const isDk = document.documentElement.classList.contains('dark');
-                const headerText = isDk ? '#cbd5e1' : '#334155';
+                function groupHeader(label, bgColor, bgColorDark, textColor, textColorDark) {
+                    const bg = isDk ? bgColorDark : bgColor;
+                    const tc = isDk ? textColorDark : textColor;
+                    return `<tr><td colspan="3" class="py-1.5 px-2 text-xs font-semibold uppercase tracking-wide" style="background:${bg};color:${tc};">${label}</td></tr>`;
+                }
                 const thead = `<thead><tr class="text-xs text-slate-400 uppercase border-b border-slate-200 dark:border-slate-600">
                     <th class="py-1 px-2 text-left font-medium">Zeit</th>
                     <th class="py-1 px-2 text-left font-medium">Sender</th>
                     <th class="py-1 px-2 text-left font-medium">Nachricht</th>
                     </tr></thead>`;
                 let tbody = '';
-                groups.forEach(g => {
-                    const headerBg = g.colorPrefix + (isDk ? '0.20)' : '0.25)');
-                    tbody += `<tr><td colspan="3" class="py-1.5 px-2 text-xs font-semibold uppercase tracking-wide" style="background:${headerBg};color:${headerText};">${esc(g.title)}</td></tr>`;
-                    tbody += buildRows(g.items, 'background:' + g.colorPrefix + '0.07)');
+                if (sev3Only.length > 0) {
+                    tbody += groupHeader(`Kritische Alarme (${sev3Only.length})`, 'rgba(100,116,139,0.12)', 'rgba(148,163,184,0.15)', '#475569', '#94a3b8');
+                    tbody += buildRows(sev3Only, 'background:rgba(100,116,139,0.04)');
+                }
+                specialGroups.forEach(g => {
+                    if (g.alarms.length === 0) return;
+                    tbody += groupHeader(`Alarm ${g.num} – ${g.cfg.name} (${g.alarms.length})`, g.cfg.header, g.cfg.headerDark, g.cfg.text, g.cfg.textDark);
+                    tbody += buildRows(g.alarms, `background:${g.cfg.rowBg}`);
                 });
                 content.innerHTML = `<table class="w-full">${thead}<tbody>${tbody}</tbody></table>`;
 
@@ -1625,9 +1929,9 @@
                 const pct = ((cnt / totalCount) * 100).toFixed(1);
                 const first = g.first ? g.first.substring(0, 10) : '–';
                 const last  = g.last  ? g.last.substring(0, 10)  : '–';
-                const is8222 = g.num === '8222';
-                const is8235 = g.num === '8235';
-                const rowBg = is8222 ? 'background:rgba(124,131,99,0.08)' : is8235 ? 'background:rgba(166,123,91,0.08)' : '';
+                // Zeilen-Highlight nur für die AFS-Sonderalarme (nur im AFS-Modus gesetzt)
+                const special = modeCfg().specialAlarms[g.num];
+                const rowBg = special ? `background:${special.overviewBg}` : '';
                 return `<tr class="border-b border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700" style="${rowBg}">
                     <td class="py-1.5 px-2 text-xs text-slate-400 text-center">${i + 1}</td>
                     <td class="py-1.5 px-2 text-xs text-slate-700 dark:text-slate-300">${esc(g.label)}</td>
@@ -1678,47 +1982,10 @@
             const startDate = subtractDays(endDate, days - 1);
             const clamped   = (dataMinDate && startDate < dataMinDate) ? dataMinDate : startDate;
 
-            const alarms = allAlarmsDataSecond.filter(i => i.date >= clamped && i.date <= endDate);
-            if (alarms.length === 0) { sectionEl.classList.add('hidden'); return; }
+            const hasAlarms = allAlarmsDataSecond.some(i => i.date >= clamped && i.date <= endDate);
+            if (!hasAlarms) { sectionEl.classList.add('hidden'); return; }
 
-            // Kalendertage im Bereich berechnen + Mittelpunkt
-            const totalDays = Math.round((new Date(endDate + 'T00:00:00') - new Date(clamped + 'T00:00:00')) / 86400000) + 1;
-            const halfDays = Math.floor(totalDays / 2);
-            const d1 = Math.max(1, halfDays);
-            const d2 = Math.max(1, totalDays - halfDays);
-            const midDate = subtractDays(endDate, d2 - 1);
-
-            // Pro Alarm-NUMMER gruppieren (nicht voller Text)
-            const numData = {};
-            alarms.forEach(a => {
-                const num = extractAlarmNumber(a.message);
-                if (!num) return;
-                if (!numData[num]) numData[num] = { label: cleanAlarmLabel(a.message), c1: 0, c2: 0 };
-                if (a.date < midDate) numData[num].c1++;
-                else numData[num].c2++;
-            });
-
-            // Steigende Alarme berechnen
-            const rising = [];
-            Object.entries(numData).forEach(([num, d]) => {
-                const avg1 = d.c1 / d1;
-                const avg2 = d.c2 / d2;
-                const total = d.c1 + d.c2;
-                if (avg2 > avg1 && avg1 > 0) {
-                    rising.push({ num, label: d.label, count: total, avg1, avg2, pct: ((avg2 - avg1) / avg1) * 100 });
-                } else if (avg2 > 0 && avg1 === 0) {
-                    rising.push({ num, label: d.label, count: d.c2, avg1: 0, avg2, pct: Infinity });
-                }
-            });
-
-            // Sortierung: echte %-Steigerung absteigend, "neu" (Infinity) dahinter nach Count
-            rising.sort((a, b) => {
-                const aNew = a.pct === Infinity ? 1 : 0;
-                const bNew = b.pct === Infinity ? 1 : 0;
-                if (aNew !== bNew) return aNew - bNew; // echte % zuerst, "neu" nach hinten
-                if (aNew && bNew) return b.count - a.count; // bei "neu" nach Count sortieren
-                return b.pct - a.pct; // sonst nach % absteigend
-            });
+            const rising = computeRisingAlarms(clamped, endDate);
 
             // Mindestanzahl-Filter
             const minFilter = document.getElementById('trendMinFilter').checked;
@@ -1828,8 +2095,10 @@
             // Update label
             document.getElementById('distSelAlarmLabel').textContent = 'Alarm ' + selectedAlarmFilter;
 
-            const filtered = allAlarmsDataSecond.filter(i =>
-                i.date >= startDate && i.date <= endDate && extractAlarmNumber(i.message) === selectedAlarmFilter);
+            const filtered = allAlarmsDataSecond.filter(i => {
+                if (i.date < startDate || i.date > endDate) return false;
+                return extractAlarmNumber(i.message) === selectedAlarmFilter;
+            });
 
             if (filtered.length === 0) {
                 document.getElementById('distributionSection').classList.add('hidden');
@@ -1854,10 +2123,162 @@
             document.getElementById('distributionAllSection').classList.remove('hidden');
         }
 
+        // ── Heatmap: Stunde × Wochentag ─────────────────────────────────────────
+        function renderHeatmap(startDate, endDate) {
+            const section = document.getElementById('heatmapSection');
+            const grid = document.getElementById('heatmapGrid');
+            // Alarme ohne Uhrzeit können keiner Stunde zugeordnet werden
+            const inRange = allAlarmsDataSecond.filter(i => i.date >= startDate && i.date <= endDate && i.time);
+            if (inRange.length === 0) { section.classList.add('hidden'); return; }
+
+            const filtered = inRange.filter(i => {
+                if (heatmapScope === 'all') return true;
+                if (heatmapScope === 'sev3') return i.severity === 3;
+                return extractAlarmNumber(i.message) === selectedAlarmFilter;
+            });
+
+            const dayNames = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
+            const matrix = Array.from({ length: 7 }, () => new Array(24).fill(0));
+            filtered.forEach(a => {
+                const h = parseInt(a.time.substring(0, 2), 10);
+                if (h < 0 || h > 23) return;
+                const jsDay = new Date(a.date + 'T00:00:00').getDay();
+                matrix[jsDay === 0 ? 6 : jsDay - 1][h]++;
+            });
+
+            const max = Math.max(...matrix.map(r => Math.max(...r)));
+            let html = '<table style="border-collapse:separate;border-spacing:2px"><thead><tr><th></th>';
+            for (let h = 0; h < 24; h++) html += `<th class="text-[9px] font-normal text-slate-400 px-0.5">${h}</th>`;
+            html += '</tr></thead><tbody>';
+            matrix.forEach((row, r) => {
+                html += `<tr><td class="text-[10px] font-medium text-slate-400 pr-1.5">${dayNames[r]}</td>`;
+                row.forEach((v, h) => {
+                    const intensity = max > 0 ? v / max : 0;
+                    const bg = v === 0 ? 'rgba(100,116,139,0.07)' : `rgba(79,70,229,${(0.15 + 0.75 * intensity).toFixed(2)})`;
+                    const light = intensity > 0.55;
+                    html += `<td class="text-center rounded" style="min-width:26px;height:22px;background:${bg}${light ? ';color:#fff' : ''}" title="${dayNames[r]} ${h}:00–${h + 1}:00 Uhr: ${v} Alarme"><span class="text-[9px]${light ? '' : ' text-slate-500 dark:text-slate-400'}">${v || ''}</span></td>`;
+                });
+                html += '</tr>';
+            });
+            html += '</tbody></table>';
+            grid.innerHTML = html;
+            section.classList.remove('hidden');
+        }
+
+        document.querySelectorAll('.heatmap-pill').forEach(btn => {
+            btn.addEventListener('click', () => {
+                heatmapScope = btn.dataset.scope;
+                document.querySelectorAll('.heatmap-pill').forEach(b => {
+                    const active = b === btn;
+                    b.classList.toggle('bg-indigo-600', active);
+                    b.classList.toggle('text-white', active);
+                    b.classList.toggle('border-indigo-600', active);
+                    b.classList.toggle('bg-white', !active);
+                    b.classList.toggle('dark:bg-slate-700', !active);
+                    b.classList.toggle('text-slate-600', !active);
+                    b.classList.toggle('dark:text-slate-300', !active);
+                    b.classList.toggle('border-slate-200', !active);
+                    b.classList.toggle('dark:border-slate-600', !active);
+                });
+                const s = document.getElementById('startDate').value;
+                const e = document.getElementById('endDate').value;
+                if (s && e) renderHeatmap(s, e);
+            });
+        });
+
+        // ── Sender-Analyse ──────────────────────────────────────────────────────
+        // senderNode = Quelle des Alarms (z. B. einzelne Boxen, v. a. bei AMS).
+        // Mehrere Boxen eines Systems können denselben Alarm erzeugen – hier wird
+        // sichtbar, WELCHER Sender wie oft meldet, um fehlerhafte Sender zu
+        // identifizieren. Manche Sender sind systemweit unique. Die Sektion
+        // erscheint datengetrieben nur, wenn der Zeitraum > 1 Sender enthält
+        // (AFS-Exporte haben i. d. R. nur die Anlage selbst als Sender).
+        function senderCount(list) {
+            return debounceActive ? countEpisodesTotal(list) : list.length;
+        }
+
+        function renderSenderAnalysis(startDate, endDate) {
+            const section = document.getElementById('senderSection');
+            const inRange = allAlarmsDataSecond.filter(i => i.date >= startDate && i.date <= endDate);
+            const senderSet = new Set(inRange.map(a => (a.senderNode || '').trim()).filter(Boolean));
+            if (senderSet.size <= 1) { section.classList.add('hidden'); return; }
+
+            // Panel 1: Top-Sender über alle Alarme (+ häufigster Alarm je Sender)
+            const bySender = {};
+            inRange.forEach(a => {
+                const s = (a.senderNode || '').trim() || '(unbekannt)';
+                (bySender[s] = bySender[s] || []).push(a);
+            });
+            const entries = Object.entries(bySender).map(([sender, list]) => {
+                const freq = {};
+                list.forEach(a => {
+                    const k = alarmGroupKey(a.message || '');
+                    if (!freq[k]) freq[k] = { label: cleanAlarmLabel(a.message || '') || '(kein Text)', count: 0 };
+                    freq[k].count++;
+                });
+                const top = Object.values(freq).sort((a, b) => b.count - a.count)[0];
+                return { sender, count: senderCount(list), topAlarm: top };
+            }).sort((a, b) => b.count - a.count);
+            const totalCount = entries.reduce((s, e) => s + e.count, 0);
+
+            document.getElementById('senderTopRange').textContent =
+                fmtDate(startDate) + ' – ' + fmtDate(endDate) + ' · ' + entries.length + ' Sender' + (debounceActive ? ' · entprellt' : '');
+            const rankClass = i => i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : 'rank-default';
+            document.getElementById('senderTopList').innerHTML = '<ul class="space-y-1">' + entries.slice(0, 10).map((e2, i) => {
+                const pct = totalCount > 0 ? ((e2.count / totalCount) * 100).toFixed(0) : 0;
+                return `<li class="flex items-start gap-2 px-2 py-1.5 rounded border text-xs ${rankClass(i)}">
+                    <span class="shrink-0 font-bold text-sm leading-tight">${i + 1}.</span>
+                    <span class="flex-1 leading-snug min-w-0"><span class="font-medium block truncate">${esc(e2.sender)}</span>
+                    <span class="text-[10px] opacity-70">häufigster Alarm: ${esc(e2.topAlarm ? e2.topAlarm.label : '–')} (${e2.topAlarm ? e2.topAlarm.count : 0}×)</span></span>
+                    <span class="shrink-0 font-bold tabular-nums">${e2.count}× <span class="font-normal opacity-60">(${pct}%)</span></span>
+                </li>`;
+            }).join('') + '</ul>';
+
+            // Panel 2: Vorkommen des Hauptalarms je Sender ("fehlerhafte Box" finden)
+            document.getElementById('senderSelAlarmLabel').textContent = 'Alarm ' + (selectedAlarmFilter || '–');
+            const mainList = inRange.filter(i => extractAlarmNumber(i.message) === selectedAlarmFilter);
+            const perSender = {};
+            mainList.forEach(a => {
+                const s = (a.senderNode || '').trim() || '(unbekannt)';
+                (perSender[s] = perSender[s] || []).push(a);
+            });
+            const barData = Object.entries(perSender)
+                .map(([sender, list]) => ({ sender, count: senderCount(list) }))
+                .sort((a, b) => b.count - a.count);
+            const barsEl = document.getElementById('senderAlarmBars');
+            if (barData.length === 0) {
+                barsEl.innerHTML = '<p class="text-xs text-slate-400 italic">Keine Vorkommen des ausgewählten Alarms im Zeitraum.</p>';
+            } else {
+                const maxC = barData[0].count;
+                barsEl.innerHTML = barData.map(b => `
+                    <div class="flex items-center gap-2 text-xs">
+                        <span class="w-32 shrink-0 truncate text-slate-600 dark:text-slate-300" title="${esc(b.sender)}">${esc(b.sender)}</span>
+                        <div class="flex-1 bg-slate-100 dark:bg-slate-700 rounded h-4 overflow-hidden">
+                            <div class="h-full rounded" style="width:${maxC > 0 ? Math.max(2, (b.count / maxC) * 100) : 0}%;background:rgba(79,70,229,0.75)"></div>
+                        </div>
+                        <span class="w-10 shrink-0 text-right font-semibold tabular-nums text-slate-600 dark:text-slate-300">${b.count}×</span>
+                    </div>`).join('');
+            }
+            section.classList.remove('hidden');
+        }
+
+        // ── "⚡ Entprellt"-Toggle ────────────────────────────────────────────────
+        document.getElementById('toggleDebounceBtn').addEventListener('click', function () {
+            debounceActive = !debounceActive;
+            this.classList.toggle('pill-inactive', !debounceActive);
+            this.classList.toggle('line-through', !debounceActive);
+            this.classList.toggle('font-medium', debounceActive);
+            this.classList.toggle('shadow-sm', debounceActive);
+            const s = document.getElementById('startDate').value;
+            const e = document.getElementById('endDate').value;
+            if (dataMinDate && s && e) analyzeAndRender(s, e);
+        });
+
         // ── Export ────────────────────────────────────────────────────────────────
         document.getElementById('downloadChartBtn').addEventListener('click', () => {
             if (!myChart) return;
-            // Auf Offscreen-Canvas kopieren, damit der Hintergrund nicht ins Live-Canvas gemalt wird
+            // Auf Offscreen-Canvas kopieren, damit der Hintergrund nicht dauerhaft
+            // ins Live-Canvas gemalt wird (sonst bleibt es im Dark Mode weiß hinterlegt)
             const src = document.getElementById('alarmChart');
             const out = document.createElement('canvas');
             out.width = src.width; out.height = src.height;
@@ -1866,7 +2287,7 @@
             octx.fillRect(0, 0, out.width, out.height);
             octx.drawImage(src, 0, 0);
             const link = document.createElement('a');
-            link.download = `Alarm_${selectedAlarmFilter}_Verlauf.png`;
+            link.download = exportFileBase() + '.png';
             link.href = out.toDataURL('image/png', 1.0);
             link.click();
         });
@@ -1905,8 +2326,7 @@
                 pdf.setTextColor(120);
                 const anlage = document.getElementById('anlageName').textContent || '';
                 const zeitraum = document.getElementById('totalDateRange').textContent || '';
-                const pdfTitle = document.getElementById('chartTitle').textContent || 'AFS Analyse';
-                pdf.text(`${pdfTitle}  |  ${anlage}  |  ${zeitraum}`, margin, 7);
+                pdf.text(`${exportHeaderText()}  |  ${anlage}  |  ${zeitraum}`, margin, 7);
 
                 const imgW = usableW;
                 const imgH = (canvas.height / canvas.width) * imgW;
@@ -1919,7 +2339,7 @@
                         pdf.addPage();
                         pdf.setFontSize(8);
                         pdf.setTextColor(120);
-                        pdf.text(`${pdfTitle}  |  ${anlage}  |  Seite ${pageNum + 1}`, margin, 7);
+                        pdf.text(`${exportHeaderText()}  |  ${anlage}  |  Seite ${pageNum + 1}`, margin, 7);
                     }
                     const sliceH = Math.min(usableH, imgH - yOffset);
                     const sourceY = (yOffset / imgH) * canvas.height;
@@ -1938,7 +2358,7 @@
                 }
 
                 const dateStr = new Date().toISOString().slice(0, 10);
-                pdf.save(`AFS_Analyse_${selectedAlarmFilter}_${anlage.replace(/[^a-zA-Z0-9]/g, '_')}_${dateStr}.pdf`);
+                pdf.save(`${exportFileBase()}_${anlage.replace(/[^a-zA-Z0-9]/g, '_')}_${dateStr}.pdf`);
             } catch (err) {
                 console.error('PDF export failed:', err);
                 showError('PDF-Export fehlgeschlagen: ' + err.message);
@@ -1947,6 +2367,46 @@
                 btn.disabled = false;
             }
         });
+
+        // ── Modus-Umschalter (AFS/AMS) ──────────────────────────────────────────
+        function applyModeUI() {
+            const cfg = modeCfg();
+            document.title = cfg.title + ' v1.1';
+            document.getElementById('appTitle').textContent = cfg.title;
+            document.getElementById('instructionStep2').innerHTML = cfg.instructionStep2;
+            // AFS-spezifischer Hilfetext (8222) nur im AFS-Modus sichtbar
+            document.getElementById('tutorialAfsSection').classList.toggle('hidden', analysisMode !== 'AFS');
+            document.querySelectorAll('#modeToggle .mode-btn').forEach(btn => {
+                const active = btn.dataset.mode === analysisMode;
+                btn.classList.toggle('bg-white', active);
+                btn.classList.toggle('text-white/70', !active);
+                btn.style.color = active ? '#003C7E' : '';
+            });
+        }
+
+        function setAnalysisMode(mode) {
+            if (!MODES[mode] || mode === analysisMode) return;
+            analysisMode = mode;
+            localStorage.setItem('analysisMode', mode);
+            applyModeUI();
+            // Bereits geladene Daten im neuen Modus neu auswerten
+            if (allAlarmsDataSecond.length > 0) {
+                selectedAlarmFilter = determineDefaultAlarm();
+                additionalAlarms = [];
+                renderAdditionalAlarmChips();
+                rebuildAlarmDropdown();
+                updateChartTitle();
+                if (myChart) { myChart.destroy(); myChart = null; }
+                const currentStart = document.getElementById('startDate').value;
+                const currentEnd   = document.getElementById('endDate').value;
+                if (currentStart && currentEnd) analyzeAndRender(currentStart, currentEnd);
+            }
+        }
+
+        document.querySelectorAll('#modeToggle .mode-btn').forEach(btn => {
+            btn.addEventListener('click', () => setAnalysisMode(btn.dataset.mode));
+        });
+        applyModeUI(); // gespeicherten Modus beim Laden wiederherstellen (Default: AFS)
 
         // ── Dark Mode ──────────────────────────────────────────────────────────
         function applyDarkModeIcons() {
